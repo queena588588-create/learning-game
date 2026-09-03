@@ -564,17 +564,71 @@ function startStoryQuiz(){
 }
 
 /* ---------- 遊戲流程 ---------- */
+/* ---------- V7 難度提升 30%：加入需要多一步思考的題目 ---------- */
+function makeHarderKindergartenPool(type){
+  const out=[]; const add=(id,t,a,o,e)=>out.push(q(id,t,a,o,e));
+  const zhs=['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ','ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'];
+  const pairs=[['爸爸','ㄅ'],['皮球','ㄆ'],['米飯','ㄇ'],['飛機','ㄈ'],['大象','ㄉ'],['兔子','ㄊ'],['牛奶','ㄋ'],['老虎','ㄌ'],['哥哥','ㄍ'],['恐龍','ㄎ'],['河馬','ㄏ'],['積木','ㄐ'],['氣球','ㄑ'],['西瓜','ㄒ'],['蜘蛛','ㄓ'],['尺','ㄔ'],['獅子','ㄕ'],['日曆','ㄖ'],['紫色','ㄗ'],['草莓','ㄘ'],['掃把','ㄙ']];
+  const opt=(arr,a)=>shuffle([a,...shuffle(arr.filter(x=>x!==a)).slice(0,3)]);
+  if(type==='幼兒注音'||type==='幼兒綜合'){
+    pairs.forEach(([w,z],i)=>add(`kg7-z-${i}`,`哪一個詞和「${w}」有相同的開頭聲音？`,z,opt(zhs,z),`先把「${w}」慢慢念一次，再找開頭的注音。`));
+    for(let i=0;i<zhs.length-2;i++) add(`kg7-zseq-${i}`,`照注音表的順序，「${zhs[i]}」後面第二個是哪一個？`,zhs[i+2],opt(zhs,zhs[i+2]),`從 ${zhs[i]} 往後數兩個。`);
+  }
+  if(type==='幼兒描寫'||type==='幼兒綜合'){
+    pairs.slice(0,16).forEach(([w,z],i)=>add(`kg7-write-${i}`,`先念「${w}」，再選出應該練寫的開頭注音。`,z,opt(zhs,z),`先聽開頭聲音，再練寫 ${z}。`));
+  }
+  if(type==='幼兒ABC'||type==='幼兒綜合'){
+    const L='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    for(let i=0;i<23;i++) add(`kg7-abcseq-${i}`,`${L[i]}、${L[i+1]}、？ 下一個字母是？`,L[i+2],opt(L,L[i+2]),`依照 ABC 順序往後找。`);
+    L.forEach((x,i)=>add(`kg7-case-${i}`,`哪一組是同一個英文字母的大小寫？`,`${x}${x.toLowerCase()}`,opt(L.map(y=>y+y.toLowerCase()),x+x.toLowerCase()),`${x} 和 ${x.toLowerCase()} 是同一個字母。`));
+  }
+  if(type==='幼兒顏色'||type==='幼兒綜合'){
+    [['🍓','紅色'],['🥕','橘色'],['🍌','黃色'],['🥦','綠色'],['🫐','藍色'],['🍇','紫色']].forEach(([e,c],i)=>add(`kg7-color-${i}`,`如果要找和 ${e} 顏色最接近的東西，應該選哪一色？`,c,opt(['紅色','橘色','黃色','綠色','藍色','紫色'],c),`先觀察物品，再判斷主要顏色。`));
+  }
+  if(type==='幼兒數數'||type==='幼兒綜合'){
+    for(let i=0;i<30;i++){let a=randint(3,12),b=randint(1,7),ans=a+b;add(`kg7-add-${i}-${a}-${b}`,`有 ${a} 顆糖，又拿來 ${b} 顆，一共有幾顆？`,ans,wrongOptions(ans,4),`${a}+${b}=${ans}。`)}
+    for(let i=0;i<25;i++){let a=randint(6,20),b=randint(1,Math.min(8,a-1)),ans=a-b;add(`kg7-sub-${i}-${a}-${b}`,`有 ${a} 個積木，拿走 ${b} 個，還有幾個？`,ans,wrongOptions(ans,4),`${a}-${b}=${ans}。`)}
+    for(let n=2;n<=18;n++)add(`kg7-next-${n}`,`${n} 的後面第二個數字是？`,n+2,wrongOptions(n+2,3),`從 ${n} 往後數兩個是 ${n+2}。`);
+  }
+  if(type==='幼兒動物'||type==='幼兒綜合'){
+    [['🐟','住在水裡'],['🐦','會飛'],['🐰','長耳朵'],['🐘','有長鼻子'],['🦁','有鬃毛'],['🐸','會跳也喜歡水']].forEach(([e,a],i)=>add(`kg7-an-${i}`,`${e} 最符合哪一個特徵？`,a,opt(['住在水裡','會飛','長耳朵','有長鼻子','有鬃毛','會跳也喜歡水'],a),`除了認動物，也要觀察牠的特徵。`));
+  }
+  if(type==='幼兒蔬果'||type==='幼兒綜合'){
+    [['🍎','水果'],['🍌','水果'],['🍇','水果'],['🥕','蔬菜'],['🥦','蔬菜'],['🌽','蔬菜'],['🍆','蔬菜'],['🍉','水果']].forEach(([e,a],i)=>add(`kg7-food-${i}`,`${e} 應該分到哪一類？`,a,['水果','蔬菜','動物','文具'],`${e} 屬於${a}。`));
+  }
+  return out;
+}
+function makeSchoolHarderPool(g,subject){
+  const out=[]; const add=(id,t,a,o,e)=>out.push(q(id,t,a,o,e));
+  if(subject==='數學'){
+    for(let i=0;i<70;i++){
+      if(g===1){let a=randint(8,20),b=randint(2,9),c=randint(1,8),ans=a-b+c;add(`v7m1-${i}-${a}-${b}-${c}`,`小盒子有 ${a} 顆珠子，送出 ${b} 顆後，又得到 ${c} 顆，現在有幾顆？`,ans,wrongOptions(ans,5),`${a}-${b}+${c}=${ans}。`)}
+      else if(g===2){let a=randint(45,150),b=randint(10,55),c=randint(10,50),ans=a-b+c;add(`v7m2-${i}-${a}-${b}-${c}`,`原有 ${a} 元，花掉 ${b} 元，又存入 ${c} 元，現在有多少元？`,ans,wrongOptions(ans,12),`${a}-${b}+${c}=${ans}。`)}
+      else {let n=randint(3,9),m=randint(4,9),b=randint(2,5),ans=n*m+b;add(`v7m3-${i}-${n}-${m}-${b}`,`${n} 盒餅乾，每盒 ${m} 片，另外還有 ${b} 片，共有幾片？`,ans,wrongOptions(ans,12),`${n}×${m}+${b}=${ans}。`)}
+    }
+  } else if(subject==='國語'){
+    const items=[['雖然下雨，小安仍然準時到校。','小安沒有因下雨而遲到'],['妹妹把玩具分類收好，找東西更快了。','分類整理能讓物品更好找'],['小宇先看完說明才開始組積木。','先了解方法再動手'],['大家輪流發言，最後找到都能接受的方法。','溝通能幫助解決不同意見'],['小晴每天練習跳繩，從十下進步到五十下。','持續練習能帶來進步']];
+    for(let r=0;r<8;r++)items.forEach((x,i)=>add(`v7c${g}-${r}-${i}`,`${x[0]} 這句話最主要想告訴我們什麼？`,x[1],[x[1],'事情全靠運氣','只要速度快就好','遇到問題最好不要處理'],`要從整句話推想最重要的意思。`));
+  } else if(subject==='生活社會'){
+    const sit=[['下課時走廊很多人','慢走並注意前方','避免碰撞'],['看到水龍頭沒關緊','把水龍頭關好','節約用水'],['同學不小心弄壞你的東西並道歉','先冷靜溝通','解決衝突'],['在網路遊戲遇到陌生人問學校名稱','不回答並告訴大人','保護個資'],['颱風天風雨很大','留在安全室內並注意警報','防災安全']];
+    for(let r=0;r<8;r++)sit.forEach((x,i)=>add(`v7s${g}-${r}-${i}`,`情境：${x[0]}。哪個做法最適合，而且理由正確？`,`${x[1]}，因為要${x[2]}`,[`${x[1]}，因為要${x[2]}`,'先不管，因為別人會處理','照自己想法做，不需要注意別人','趕快離開，不用告訴任何人'],`這題要同時判斷「做法」和「理由」。`));
+  }
+  return out;
+}
 function getPool(){
-  if(String(state.subject).startsWith('幼兒'))return makeKindergartenPool(state.subject);
-  if(state.subject==='數學')return makeMathPool(state.grade,state.level);
-  if(state.subject==='國語')return makeChinesePool(state.grade,state.level);
-  if(state.subject==='生活社會')return makeLifeSocialPool(state.grade,state.level);
+  if(String(state.subject).startsWith('幼兒'))return [...makeKindergartenPool(state.subject),...makeHarderKindergartenPool(state.subject)];
+  if(state.subject==='數學')return [...makeMathPool(state.grade,state.level),...makeSchoolHarderPool(state.grade,'數學')];
+  if(state.subject==='國語')return [...makeChinesePool(state.grade,state.level),...makeSchoolHarderPool(state.grade,'國語')];
+  if(state.subject==='生活社會')return [...makeLifeSocialPool(state.grade,state.level),...makeSchoolHarderPool(state.grade,'生活社會')];
   return [];
 }
 function startNormalGame(){
   const pool=getPool();
   if(pool.length<15){alert('題庫不足，請稍後再試。');return}
-  launch(chooseFresh(pool,15));
+  const hard=pool.filter(x=>String(x.id).startsWith('v7')||String(x.id).startsWith('kg7'));
+  const normal=pool.filter(x=>!String(x.id).startsWith('v7')&&!String(x.id).startsWith('kg7'));
+  const selected=hard.length>=5 ? shuffle([...chooseFresh(hard,5),...chooseFresh(normal,10)]) : chooseFresh(pool,15);
+  launch(selected.slice(0,15));
 }
 function launch(list){
   state.questions=shuffle(list);
