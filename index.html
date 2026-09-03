@@ -66,8 +66,9 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
 
   <section id="gradeScreen" class="panel hidden">
     <button class="back" onclick="show('childScreen')">⬅ 換人</button>
-    <div class="step">① 選年級</div>
+    <div class="step">① 選學習階段</div>
     <div class="grid">
+      <button class="btn reading" id="kindergartenBtn" onclick="chooseKindergarten()">🌈 幼兒園｜美美遊戲</button>
       <button class="btn" onclick="chooseGrade(1)">一年級</button>
       <button class="btn" onclick="chooseGrade(2)">二年級</button>
       <button class="btn" onclick="chooseGrade(3)">三年級</button>
@@ -242,6 +243,22 @@ function syncEarnedStars(count){
 }
 
 /* ---------- 選單 ---------- */
+function chooseKindergarten(){
+  state.grade='幼兒園';
+  $('gradeTitle').textContent='幼兒園中班・大班';
+  const subs=[
+    ['🔤 認識注音符號','幼兒注音'],
+    ['✍️ ㄅㄆㄇ描寫練習','幼兒描寫'],
+    ['🔠 ABC字母樂園','幼兒ABC'],
+    ['🌈 認識顏色','幼兒顏色'],
+    ['🔢 數數樂園','幼兒數數'],
+    ['🐶 動物配對','幼兒動物'],
+    ['🍎 蔬果配對','幼兒蔬果'],
+    ['🧩 綜合挑戰','幼兒綜合']
+  ];
+  $('subjectGrid').innerHTML=subs.map(([a,b])=>`<button class="btn reading" onclick="chooseSubject('${b}')">${a}</button>`).join('');
+  show('subjectScreen');
+}
 function chooseGrade(g){
   state.grade=g;$('gradeTitle').textContent=`${g}年級`;
   const subs=g<3?[['📖 國語','國語'],['➕ 數學','數學'],['🌱 生活','生活社會'],['📚 短篇閱讀','閱讀']]
@@ -251,11 +268,51 @@ function chooseGrade(g){
 }
 function chooseSubject(s){
   state.subject=s;
+  if(String(s).startsWith('幼兒')){state.level='中大班';state.mode='normal';startNormalGame();return}
   if(s==='閱讀'){renderStoryCards();show('storyListScreen');return}
   const label=s==='生活社會'?(state.grade<3?'生活':'社會'):s;
   $('subjectTitle').textContent=`${state.grade}年級｜${label}`;show('levelScreen');
 }
 function chooseLevel(l){state.level=l;state.mode='normal';startNormalGame()}
+
+/* ---------- 美美｜幼兒園中班・大班 ---------- */
+function makeKindergartenPool(type){
+  const out=[]; const add=(id,t,a,o,e)=>out.push(q(id,t,a,o,e));
+  const zh=['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ','ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ','ㄧ','ㄨ','ㄩ'];
+  const zhWords=[['ㄅ','爸爸'],['ㄆ','蘋果'],['ㄇ','媽媽'],['ㄈ','飛機'],['ㄉ','蛋糕'],['ㄊ','兔子'],['ㄋ','牛奶'],['ㄌ','老虎'],['ㄍ','哥哥'],['ㄎ','恐龍'],['ㄏ','河馬'],['ㄐ','雞蛋'],['ㄑ','氣球'],['ㄒ','西瓜'],['ㄓ','蜘蛛'],['ㄔ','尺'],['ㄕ','獅子'],['ㄖ','日'],['ㄗ','紫色'],['ㄘ','草莓'],['ㄙ','掃把']];
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const colors=[['紅色','🍎'],['橘色','🍊'],['黃色','🍌'],['綠色','🥦'],['藍色','🫐'],['紫色','🍇'],['粉紅色','🌸'],['黑色','🐈‍⬛'],['白色','☁️'],['咖啡色','🐻']];
+  const animals=[['🐶','狗狗'],['🐱','貓咪'],['🐰','兔子'],['🐘','大象'],['🦁','獅子'],['🐯','老虎'],['🐵','猴子'],['🐼','熊貓'],['🐸','青蛙'],['🐷','小豬'],['🐔','小雞'],['🐟','魚']];
+  const foods=[['🍎','蘋果'],['🍌','香蕉'],['🍇','葡萄'],['🍓','草莓'],['🍉','西瓜'],['🍊','橘子'],['🥕','紅蘿蔔'],['🥦','花椰菜'],['🌽','玉米'],['🍅','番茄'],['🥒','小黃瓜'],['🍆','茄子']];
+  function optsFrom(arr,ans){return shuffle([ans,...shuffle(arr.filter(x=>x!==ans)).slice(0,3)])}
+  if(type==='幼兒注音'||type==='幼兒綜合'){
+    zh.forEach((z,i)=>add(`kg-z-${i}`,`請找出「${z}」`,z,optsFrom(zh,z),`這個注音符號是 ${z}。`));
+    zhWords.forEach(([z,w],i)=>add(`kg-zw-${i}`,`「${w}」開頭最像哪個注音？`,z,optsFrom(zh,z),`${w}的開頭可以先認識「${z}」。`));
+  }
+  if(type==='幼兒描寫'||type==='幼兒綜合'){
+    zh.forEach((z,i)=>add(`kg-write-${i}`,`今天要練習寫哪一個？　${z}`,z,[z,'我寫好了','再看一次','下一個'],`用手指先沿著「${z}」的形狀慢慢描一次，再拿紙筆練習。`));
+  }
+  if(type==='幼兒ABC'||type==='幼兒綜合'){
+    letters.forEach((L,i)=>add(`kg-abc-${i}`,`請找出大寫字母「${L}」`,L,optsFrom(letters,L),`這是大寫字母 ${L}。`));
+    letters.forEach((L,i)=>add(`kg-abcl-${i}`,`${L} 的小寫是哪一個？`,L.toLowerCase(),optsFrom(letters.map(x=>x.toLowerCase()),L.toLowerCase()),`${L} 的小寫是 ${L.toLowerCase()}。`));
+  }
+  if(type==='幼兒顏色'||type==='幼兒綜合'){
+    colors.forEach(([c,emo],i)=>add(`kg-color-${i}`,`${emo} 最接近哪一種顏色？`,c,optsFrom(colors.map(x=>x[0]),c),`${emo} 常見的代表顏色是${c}。`));
+  }
+  if(type==='幼兒數數'||type==='幼兒綜合'){
+    const emo=['⭐','🍎','🐰','🌸','🧸'];
+    for(let n=1;n<=20;n++){let e=emo[n%emo.length];add(`kg-count-${n}`,`數一數：${Array(n).fill(e).join(' ')}\n一共有幾個？`,n,wrongOptions(n,3),`一個一個慢慢數，一共有 ${n} 個。`)}
+    for(let n=1;n<=20;n++)add(`kg-num-${n}`,`哪一個是數字「${n}」？`,n,wrongOptions(n,4),`這個數字是 ${n}。`);
+  }
+  if(type==='幼兒動物'||type==='幼兒綜合'){
+    animals.forEach(([emo,name],i)=>add(`kg-animal-${i}`,`${emo} 是什麼動物？`,name,optsFrom(animals.map(x=>x[1]),name),`${emo} 是${name}。`));
+  }
+  if(type==='幼兒蔬果'||type==='幼兒綜合'){
+    foods.forEach(([emo,name],i)=>add(`kg-food-${i}`,`${emo} 是什麼？`,name,optsFrom(foods.map(x=>x[1]),name),`${emo} 是${name}。`));
+    foods.forEach(([emo,name],i)=>add(`kg-food2-${i}`,`請找到「${name}」`,emo,optsFrom(foods.map(x=>x[0]),emo),`${name}就是 ${emo}。`));
+  }
+  return out;
+}
 
 /* ---------- 數學：動態產生，組合數非常大 ---------- */
 function makeMathPool(g,l){
@@ -508,6 +565,7 @@ function startStoryQuiz(){
 
 /* ---------- 遊戲流程 ---------- */
 function getPool(){
+  if(String(state.subject).startsWith('幼兒'))return makeKindergartenPool(state.subject);
   if(state.subject==='數學')return makeMathPool(state.grade,state.level);
   if(state.subject==='國語')return makeChinesePool(state.grade,state.level);
   if(state.subject==='生活社會')return makeLifeSocialPool(state.grade,state.level);
@@ -522,8 +580,9 @@ function launch(list){
   state.questions=shuffle(list);
   state.index=0;state.score=0;state.combo=0;state.wrong=[];state.locked=false;
   $('score').textContent='0';$('combo').textContent='0';$('total').textContent=state.questions.length;refreshStarUI();
-  const label=state.subject==='生活社會'?(state.grade<3?'生活':'社會'):state.subject;
-  $('modeLabel').textContent=state.mode==='reading'?`${state.child}｜${state.grade}年級｜📚 ${state.selectedStory.title}`:`${state.child}｜${state.grade}年級｜${label}｜${state.level}`;
+  const label=state.subject==='生活社會'?(state.grade<3?'生活':'社會'):state.subject.replace('幼兒','');
+  const gradeLabel=state.grade==='幼兒園'?'幼兒園中大班':`${state.grade}年級`;
+  $('modeLabel').textContent=state.mode==='reading'?`${state.child}｜${gradeLabel}｜📚 ${state.selectedStory.title}`:`${state.child}｜${gradeLabel}｜${label}｜${state.level}`;
   show('game');renderQuestion();
 }
 function renderQuestion(){
