@@ -154,6 +154,8 @@ function q(id,text,answer,options,explain){return {id,text,answer:String(answer)
 /* 把下面網址換成你「闖關樂園 Apps Script 網頁應用程式」的 /exec 網址 */
 const CHALLENGE_PARK_SYNC_URL = 'https://script.google.com/macros/s/AKfycby-6r_kVslcDTE7gf_hiXpspH52kpLMcQJ4JPAJBoHQaoHf51JV7nh1tYm3xeMpGFo/exec';
 
+const state={child:null,grade:null,subject:null,level:null,mode:'normal',selectedStory:null,questions:[],index:0,score:0,combo:0,wrong:[],locked:false,lastSource:[]};
+
 function chooseChild(child){
   state.child=child;
   localStorage.setItem('learningGameChild',child);
@@ -176,8 +178,6 @@ function wrongOptions(ans,spread=4){
   while(set.size<4){let x=ans+randint(-spread,spread);if(x>=0)set.add(x)}
   return shuffle([...set]);
 }
-const state={child:null,grade:null,subject:null,level:null,mode:'normal',selectedStory:null,questions:[],index:0,score:0,combo:0,wrong:[],locked:false,lastSource:[]};
-
 /* ---------- 最近題目避重複 ---------- */
 const RECENT_KEY='learningGameRecentV3';
 function getRecent(){try{return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]')}catch(e){return[]}}
