@@ -53,7 +53,19 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
     <div class="sub">長期題庫版｜動態出題・近期避重複・短篇閱讀</div>
   </div>
 
-  <section id="gradeScreen" class="panel">
+  <section id="childScreen" class="panel">
+    <div class="step">先選今天是誰在玩</div>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
+      <button class="btn" onclick="chooseChild('穎寶')">⚡ 穎寶</button>
+      <button class="btn" onclick="chooseChild('美美')">👑 美美</button>
+    </div>
+    <div class="info" style="margin-top:14px">
+      選好後，答對題目累積滿 10 題會自動同步 ⭐1 顆到原本闖關樂園。
+    </div>
+  </section>
+
+  <section id="gradeScreen" class="panel hidden">
+    <button class="back" onclick="show('childScreen')">⬅ 換人</button>
     <div class="step">① 選年級</div>
     <div class="grid">
       <button class="btn" onclick="chooseGrade(1)">一年級</button>
@@ -131,18 +143,39 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
 
 <script>
 const $=id=>document.getElementById(id);
-const screens=['gradeScreen','subjectScreen','levelScreen','storyListScreen','storyScreen','game','result'];
+const screens=['childScreen','gradeScreen','subjectScreen','levelScreen','storyListScreen','storyScreen','game','result'];
 function show(id){screens.forEach(x=>$(x).classList.toggle('hidden',x!==id))}
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 function randint(a,b){return Math.floor(Math.random()*(b-a+1))+a}
 function q(id,text,answer,options,explain){return {id,text,answer:String(answer),options:options.map(String),explain}}
+
+/* 把下面網址換成你「闖關樂園 Apps Script 網頁應用程式」的 /exec 網址 */
+const CHALLENGE_PARK_SYNC_URL = 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+
+function chooseChild(child){
+  state.child=child;
+  localStorage.setItem('learningGameChild',child);
+  show('gradeScreen');
+}
+(function autoChildFromUrl(){
+  const urlChild=new URLSearchParams(location.search).get('child');
+  const saved=localStorage.getItem('learningGameChild');
+  if(urlChild==='穎寶'||urlChild==='美美'){
+    state.child=urlChild;
+    localStorage.setItem('learningGameChild',urlChild);
+    setTimeout(()=>show('gradeScreen'),0);
+  }else if(saved==='穎寶'||saved==='美美'){
+    state.child=saved;
+    setTimeout(()=>show('gradeScreen'),0);
+  }
+})();
 function wrongOptions(ans,spread=4){
   const set=new Set([ans]);
   while(set.size<4){let x=ans+randint(-spread,spread);if(x>=0)set.add(x)}
   return shuffle([...set]);
 }
-const state={grade:null,subject:null,level:null,mode:'normal',selectedStory:null,questions:[],index:0,score:0,combo:0,wrong:[],locked:false,lastSource:[]};
+const state={child:null,grade:null,subject:null,level:null,mode:'normal',selectedStory:null,questions:[],index:0,score:0,combo:0,wrong:[],locked:false,lastSource:[]};
 
 /* ---------- 最近題目避重複 ---------- */
 const RECENT_KEY='learningGameRecentV3';
@@ -175,16 +208,37 @@ function refreshStarUI(){
 function addCorrectForStar(){
   let progress=getStarProgress()+1;
   let stars=getStars();
-  let earned=false;
+  let earnedCount=0;
   if(progress>=10){
-    stars+=Math.floor(progress/10);
+    earnedCount=Math.floor(progress/10);
+    stars+=earnedCount;
     progress=progress%10;
     localStorage.setItem(STAR_KEY,String(stars));
-    earned=true;
+    syncEarnedStars(earnedCount);
   }
   localStorage.setItem(STAR_PROGRESS_KEY,String(progress));
   refreshStarUI();
-  return earned;
+  return earnedCount>0;
+}
+
+function syncEarnedStars(count){
+  if(!count || !state.child) return;
+  if(!CHALLENGE_PARK_SYNC_URL || CHALLENGE_PARK_SYNC_URL.includes('PASTE_YOUR')) return;
+
+  const sourceId='LEARNING-'+state.child+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
+  const body=new URLSearchParams({
+    action:'learningGameStar',
+    child:state.child,
+    stars:String(count),
+    sourceId:sourceId
+  });
+
+  fetch(CHALLENGE_PARK_SYNC_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+    body:body.toString()
+  }).catch(()=>{});
 }
 
 /* ---------- 選單 ---------- */
@@ -469,7 +523,7 @@ function launch(list){
   state.index=0;state.score=0;state.combo=0;state.wrong=[];state.locked=false;
   $('score').textContent='0';$('combo').textContent='0';$('total').textContent=state.questions.length;refreshStarUI();
   const label=state.subject==='生活社會'?(state.grade<3?'生活':'社會'):state.subject;
-  $('modeLabel').textContent=state.mode==='reading'?`${state.grade}年級｜📚 ${state.selectedStory.title}`:`${state.grade}年級｜${label}｜${state.level}`;
+  $('modeLabel').textContent=state.mode==='reading'?`${state.child}｜${state.grade}年級｜📚 ${state.selectedStory.title}`:`${state.child}｜${state.grade}年級｜${label}｜${state.level}`;
   show('game');renderQuestion();
 }
 function renderQuestion(){
