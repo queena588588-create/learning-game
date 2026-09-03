@@ -61,7 +61,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseGrade(3)">三年級</button>
     </div>
     <div class="info" style="margin-top:14px">
-      系統會記住這台裝置最近玩過的題目，下一局優先換新題；數學會自動換數字，因此不是固定幾百題玩完就結束。
+      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。累積答對 10 題就自動獲得 ⭐1，答對進度會保存在這台裝置。
     </div>
   </section>
 
@@ -74,10 +74,11 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
   <section id="levelScreen" class="panel hidden">
     <button class="back" onclick="show('subjectScreen')">⬅ 回上一層</button>
     <div class="step"><span id="subjectTitle"></span>｜③ 選難度</div>
-    <div class="grid">
+    <div class="grid" style="grid-template-columns:repeat(2,1fr)">
       <button class="btn" onclick="chooseLevel('初級')">🌱 初級</button>
       <button class="btn" onclick="chooseLevel('中級')">🔥 中級</button>
       <button class="btn" onclick="chooseLevel('困難')">👑 困難</button>
+      <button class="btn" onclick="chooseLevel('挑戰')">⚡ 挑戰級 +20%</button>
     </div>
   </section>
 
@@ -102,7 +103,9 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
     <div class="topbar">
       <div class="badge" id="modeLabel"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div class="badge">⭐ <span id="score">0</span></div>
+        <div class="badge">✅ 本局 <span id="score">0</span></div>
+        <div class="badge">⭐ 總星星 <span id="starBank">0</span></div>
+        <div class="badge">🌟 集星 <span id="starProgress">0</span>/10</div>
         <div class="badge">🔥 Combo <span id="combo">0</span></div>
         <div class="badge">第 <span id="num">1</span>/<span id="total">10</span> 題</div>
       </div>
@@ -160,6 +163,30 @@ function chooseFresh(pool,count){
   return [...fresh,...old].slice(0,count);
 }
 
+/* ---------- 集星：答對10題 = 1顆星 ---------- */
+const STAR_KEY='learningGameStarsV3';
+const STAR_PROGRESS_KEY='learningGameStarProgressV3';
+function getStars(){return Number(localStorage.getItem(STAR_KEY)||0)}
+function getStarProgress(){return Number(localStorage.getItem(STAR_PROGRESS_KEY)||0)}
+function refreshStarUI(){
+  if($('starBank')) $('starBank').textContent=getStars();
+  if($('starProgress')) $('starProgress').textContent=getStarProgress();
+}
+function addCorrectForStar(){
+  let progress=getStarProgress()+1;
+  let stars=getStars();
+  let earned=false;
+  if(progress>=10){
+    stars+=Math.floor(progress/10);
+    progress=progress%10;
+    localStorage.setItem(STAR_KEY,String(stars));
+    earned=true;
+  }
+  localStorage.setItem(STAR_PROGRESS_KEY,String(progress));
+  refreshStarUI();
+  return earned;
+}
+
 /* ---------- 選單 ---------- */
 function chooseGrade(g){
   state.grade=g;$('gradeTitle').textContent=`${g}年級`;
@@ -180,7 +207,20 @@ function chooseLevel(l){state.level=l;state.mode='normal';startNormalGame()}
 function makeMathPool(g,l){
   const out=[];
   const add=(id,text,ans,opts,exp)=>out.push(q(id,text,ans,opts,exp));
-  for(let i=0;i<90;i++){
+  for(let i=0;i<130;i++){
+    if(l==='挑戰'){
+      if(g===1){
+        let a=randint(5,18), b=randint(1,Math.min(9,a)), c=randint(1,7), ans=a-b+c;
+        add(`m1x-${a}-${b}-${c}`,`盒子裡有 ${a} 顆球，拿走 ${b} 顆，又放進 ${c} 顆，現在有幾顆？`,ans,wrongOptions(ans,4),`${a}-${b}+${c}=${ans}。先做拿走，再做放進。`);
+      }else if(g===2){
+        let a=randint(40,120), b=randint(10,45), c=randint(5,35), ans=a-b+c;
+        add(`m2x-${a}-${b}-${c}`,`商店原有 ${a} 個氣球，上午賣出 ${b} 個，下午又補進 ${c} 個，現在有幾個？`,ans,wrongOptions(ans,10),`${a}-${b}+${c}=${ans}。`);
+      }else{
+        let boxes=randint(3,9), each=randint(4,9), used=randint(5,20), ans=boxes*each-used;
+        add(`m3x-${boxes}-${each}-${used}`,`有 ${boxes} 盒貼紙，每盒 ${each} 張，用掉 ${used} 張後還剩多少張？`,ans,wrongOptions(ans,15),`${boxes}×${each}-${used}=${ans}。這是兩步驟應用題。`);
+      }
+      continue;
+    }
     if(g===1){
       let a=randint(0,10),b=randint(0,10-a),ans=a+b;
       if(l==='初級') add(`m1e-a-${a}-${b}`,`${a} + ${b} = ?`,ans,wrongOptions(ans,3),`${a} + ${b} = ${ans}。`);
@@ -248,6 +288,21 @@ const scenes=[
 ];
 function makeChinesePool(g,l){
   const out=[];
+  if(l==='挑戰'){
+    vocab[g].forEach((v,i)=>{
+      out.push(q(`cx${g}-meaning-${i}`,`下面哪個情境最適合用「${v[0]}」來形容？`,
+        `小朋友表現得${v[1]}`,
+        [`小朋友表現得${v[1]}`,`小朋友表現得${v[2]}`,'完全沒有做任何事情','只是剛好站在旁邊'],
+        `要先理解「${v[0]}」的意思，再判斷情境。`));
+    });
+    scenes.forEach((s,i)=>{
+      out.push(q(`cx${g}-infer-${i}`,`${s[0]} 如果要替這段話加一個最適合的標題，哪一個最好？`,
+        s[1],[s[1],'今天的天氣','好吃的點心','放學回家'],`標題要抓住事件最重要的意思：${s[2]}`));
+      out.push(q(`cx${g}-cause-${i}`,`${s[0]} 這個結果最主要是因為什麼？`,
+        s[1],[s[1],'因為運氣好','因為別人都沒看到','因為事情自己解決了'],`要從行為和結果之間找因果關係。`));
+    });
+    return out;
+  }
   vocab[g].forEach((v,i)=>{
     out.push(q(`c${g}-${l}-syn-${i}`,`「${v[0]}」較接近哪個意思？`,v[1],[v[1],v[2],pick(['很甜','很重','很高','很遠']),pick(['睡覺','跑步','喝水','唱歌'])],`「${v[0]}」較接近「${v[1]}」。`));
   });
@@ -303,6 +358,25 @@ const socialPool=[
 ];
 function makeLifeSocialPool(g,l){
   const out=[];
+  if(l==='挑戰'){
+    if(g<3){
+      lifePool.forEach((x,i)=>{
+        const bad=shuffle(lifePool.filter((_,j)=>j!==i).map(y=>y[1])).slice(0,3);
+        out.push(q(`lsx${g}-${i}`,`如果你遇到「${x[0]}」的情況，哪個做法最安全、也最有禮貌？`,x[1],[x[1],...bad],`要同時考慮安全、規則與尊重。`));
+      });
+      return out;
+    }else{
+      socialPool.forEach((x,i)=>{
+        const bad=shuffle(socialPool.filter((_,j)=>j!==i).map(y=>y[1])).slice(0,3);
+        out.push(q(`s3x-${i}`,`如果要向低年級同學介紹「${x[0]}」，哪個說明最適合？`,x[1],[x[1],...bad],`要抓住場所或概念的主要功能。`));
+      });
+      lifePool.forEach((x,i)=>{
+        const bad=shuffle(lifePool.filter(y=>y[1]!==x[1]).map(y=>y[1])).slice(0,3);
+        out.push(q(`s3x-life-${i}`,`在公共生活中遇到「${x[0]}」，哪個做法最符合安全與責任？`,x[1],[x[1],...bad],`要兼顧自己與他人的安全和權益。`));
+      });
+      return out;
+    }
+  }
   if(g<3){
     lifePool.forEach((x,i)=>{
       const bad=shuffle(lifePool.filter((_,j)=>j!==i).map(y=>y[1])).slice(0,3);
@@ -387,13 +461,13 @@ function getPool(){
 }
 function startNormalGame(){
   const pool=getPool();
-  if(pool.length<10){alert('題庫不足，請稍後再試。');return}
-  launch(chooseFresh(pool,10));
+  if(pool.length<15){alert('題庫不足，請稍後再試。');return}
+  launch(chooseFresh(pool,15));
 }
 function launch(list){
   state.questions=shuffle(list);
   state.index=0;state.score=0;state.combo=0;state.wrong=[];state.locked=false;
-  $('score').textContent='0';$('combo').textContent='0';$('total').textContent=state.questions.length;
+  $('score').textContent='0';$('combo').textContent='0';$('total').textContent=state.questions.length;refreshStarUI();
   const label=state.subject==='生活社會'?(state.grade<3?'生活':'社會'):state.subject;
   $('modeLabel').textContent=state.mode==='reading'?`${state.grade}年級｜📚 ${state.selectedStory.title}`:`${state.grade}年級｜${label}｜${state.level}`;
   show('game');renderQuestion();
@@ -413,7 +487,8 @@ function answer(btn,opt,item){
   const all=[...document.querySelectorAll('.answer')];all.forEach(b=>b.disabled=true);
   if(String(opt)===item.answer){
     btn.classList.add('correct');state.score++;state.combo++;
-    $('feedback').textContent=state.combo>=3?'🎉 連續答對！太棒了！':'✅ 答對了！得到 1 顆星星';
+    const earned=addCorrectForStar();
+    $('feedback').textContent=earned?'🌟 累積答對 10 題！獲得 ⭐1 顆！':(state.combo>=3?'🎉 連續答對！集星進度 +1':'✅ 答對了！集星進度 +1');
   }else{
     btn.classList.add('wrong');state.combo=0;state.wrong.push(item);
     all.forEach(b=>{if(b.textContent===item.answer)b.classList.add('correct')});
@@ -427,7 +502,7 @@ function finish(){
   saveRecent(state.questions.map(x=>x.id));
   show('result');const total=state.questions.length,pct=Math.round(state.score/total*100);
   $('resultEmoji').textContent=pct===100?'👑':pct>=80?'🌟':pct>=60?'👏':'💪';
-  $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b>｜得到 ⭐ <b>${state.score}</b>`;
+  $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b><br>⭐ 累積答對每 10 題，自動獲得 1 顆星`;
   if(state.wrong.length){
     $('wrongBox').classList.remove('hidden');
     $('wrongBox').innerHTML='<b>這次的錯題：</b><br>'+state.wrong.map((x,i)=>`${i+1}. ${x.text} → ${x.answer}`).join('<br>');
