@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>穎寶＆美美｜學習冒險島</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
+  background:linear-gradient(180deg,#fff9ef,#eef8ff 55%,#f7f1ff);
+  color:#2f3542;
+}
+.wrap{max-width:980px;margin:auto;padding:20px}
+.hero{
+  background:white;border-radius:28px;padding:24px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);text-align:center
+}
+h1{margin:0;font-size:clamp(28px,5vw,46px)}
+.sub{color:#6b7280;margin-top:8px}
+.panel{
+  margin-top:18px;background:#fff;border-radius:24px;padding:20px;
+  box-shadow:0 8px 24px rgba(0,0,0,.07)
+}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.btn{
+  border:none;border-radius:18px;padding:16px 12px;cursor:pointer;
+  font-size:18px;font-weight:800;transition:.15s;
+  background:#f5f7fb;color:#333;min-height:64px
+}
+.btn:hover{transform:translateY(-2px)}
+.btn.active{outline:4px solid #8bbcff;background:#edf6ff}
+.primary{background:#6da8ff;color:white;width:100%;margin-top:16px}
+.hidden{display:none}
+.topbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.badge{background:#f6f7fb;border-radius:999px;padding:9px 14px;font-weight:800}
+.progress{height:12px;background:#edf0f5;border-radius:99px;overflow:hidden;margin-top:14px}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,#5ba7ff,#8d7cff)}
+.question{font-size:clamp(30px,6vw,52px);font-weight:900;text-align:center;margin:28px 0}
+.answers{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.answer{
+  border:2px solid #e6e9ef;background:white;border-radius:18px;
+  min-height:70px;font-size:24px;font-weight:900;cursor:pointer;padding:12px
+}
+.answer.correct{border-color:#35b66a;background:#eafff0}
+.answer.wrong{border-color:#ef6a6a;background:#fff0f0}
+.feedback{min-height:34px;text-align:center;font-weight:800;margin-top:16px}
+.explain{font-size:15px;color:#667085;text-align:center;margin-top:6px}
+.next{display:block;margin:16px auto 0;border:none;border-radius:16px;padding:13px 22px;
+background:#705cff;color:#fff;font-weight:900;font-size:17px;cursor:pointer}
+.small{font-size:14px;color:#7a8492}
+.result{text-align:center}
+.result h2{font-size:32px}
+.wrong-list{text-align:left;background:#fafafa;border-radius:16px;padding:14px;margin-top:14px}
+@media(max-width:640px){
+ .grid{grid-template-columns:1fr}
+ .answers{grid-template-columns:1fr}
+ .wrap{padding:12px}
+ .panel,.hero{border-radius:20px;padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div style="font-size:46px">🏝️📚🎮</div>
+    <h1>穎寶＆美美｜學習冒險島</h1>
+    <div class="sub">選年級、選科目、選難度，每次隨機挑戰 10 題！</div>
+  </div>
+
+  <div id="setup" class="panel">
+    <h3>① 選年級</h3>
+    <div class="grid" id="gradeBtns">
+      <button class="btn" data-value="1">一年級</button>
+      <button class="btn" data-value="2">二年級</button>
+      <button class="btn" data-value="3">三年級</button>
+    </div>
+
+    <h3>② 選科目</h3>
+    <div class="grid" id="subjectBtns">
+      <button class="btn" data-value="國語">📖 國語</button>
+      <button class="btn" data-value="數學">➕ 數學</button>
+      <button class="btn" data-value="生活社會">🌏 生活／社會</button>
+    </div>
+
+    <h3>③ 選難度</h3>
+    <div class="grid" id="levelBtns">
+      <button class="btn" data-value="初級">🌱 初級</button>
+      <button class="btn" data-value="中級">🔥 中級</button>
+      <button class="btn" data-value="困難">👑 困難</button>
+    </div>
+
+    <button id="startBtn" class="btn primary">開始闖關 🚀</button>
+    <div id="setupMsg" class="feedback"></div>
+  </div>
+
+  <div id="game" class="panel hidden">
+    <div class="topbar">
+      <div class="badge" id="modeLabel"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="badge">⭐ <span id="score">0</span></div>
+        <div class="badge">🔥 Combo <span id="combo">0</span></div>
+        <div class="badge">第 <span id="num">1</span>/10 題</div>
+      </div>
+    </div>
+    <div class="progress"><div id="bar"></div></div>
+    <div class="question" id="question"></div>
+    <div class="answers" id="answers"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="explain" id="explain"></div>
+    <button id="nextBtn" class="next hidden">下一題 ➜</button>
+  </div>
+
+  <div id="result" class="panel hidden result">
+    <div style="font-size:60px" id="resultEmoji">🏆</div>
+    <h2>闖關完成！</h2>
+    <div id="resultText"></div>
+    <div id="wrongBox" class="wrong-list hidden"></div>
+    <button id="retryWrong" class="next hidden">錯題再挑戰 🔁</button>
+    <button id="restart" class="next">重新選關卡 🏝️</button>
+  </div>
+</div>
+
+<script>
+const state={grade:null,subject:null,level:null,index:0,score:0,combo:0,questions:[],wrong:[],locked:false};
+
+const bank = {
+  "1-數學-初級":[
+    q("3 + 4 = ?",7,[6,7,8,9],"3 再加 4，就是 7。"),
+    q("9 - 5 = ?",4,[3,4,5,6],"9 拿走 5，剩下 4。"),
+    q("6 + 2 = ?",8,[7,8,9,10],"6 再數 2 個：7、8。"),
+    q("10 - 3 = ?",7,[5,6,7,8],"10 拿走 3，剩 7。"),
+    q("5 + 0 = ?",5,[0,4,5,6],"加 0，數量不變。"),
+    q("8 - 8 = ?",0,[0,1,2,8],"全部拿走就剩 0。"),
+    q("4 + 5 = ?",9,[7,8,9,10],"4 加 5 等於 9。"),
+    q("7 - 2 = ?",5,[4,5,6,7],"7 拿走 2，剩 5。"),
+    q("1 + 8 = ?",9,[8,9,10,11],"1 加 8 是 9。"),
+    q("6 - 1 = ?",5,[4,5,6,7],"6 少 1 是 5。"),
+    q("2 + 7 = ?",9,[7,8,9,10],"2 加 7 是 9。"),
+    q("10 - 6 = ?",4,[3,4,5,6],"10 拿走 6，剩 4。")
+  ],
+  "1-數學-中級":[
+    q("小美有 6 顆糖，又得到 3 顆，共有幾顆？",9,[8,9,10,11],"6 + 3 = 9。"),
+    q("有 10 顆球，送走 4 顆，剩幾顆？",6,[5,6,7,8],"10 - 4 = 6。"),
+    q("哪一個算式答案最大？","5+4",["3+4","5+4","8-1","10-3"],"5+4=9，其餘都是 7。"),
+    q("8 比 5 多多少？",3,[2,3,4,5],"8 - 5 = 3。"),
+    q("哪一個答案是 6？","9-3",["2+3","9-3","8-1","4+1"],"9 - 3 = 6。"),
+    q("小明有 4 枝筆，再買 4 枝，有幾枝？",8,[6,7,8,9],"4 + 4 = 8。"),
+    q("7 顆蘋果吃掉 3 顆，還剩？",4,[3,4,5,6],"7 - 3 = 4。"),
+    q("2、4、6、8，下一個數是？",10,[9,10,11,12],"每次增加 2。"),
+    q("比 9 少 2 的數是？",7,[6,7,8,9],"9 - 2 = 7。"),
+    q("5 + ? = 9",4,[3,4,5,6],"9 - 5 = 4。")
+  ],
+  "1-數學-困難":[
+    q("有 8 顆糖，先吃 2 顆，又拿到 3 顆，現在有幾顆？",9,[8,9,10,11],"8 - 2 + 3 = 9。"),
+    q("小明有 5 元，小美比他多 3 元，小美有幾元？",8,[6,7,8,9],"5 + 3 = 8。"),
+    q("10 - ? = 6",4,[2,3,4,5],"10 - 4 = 6。"),
+    q("哪個算式和 7 的答案一樣？","9-2",["4+2","9-2","10-2","3+3"],"9 - 2 = 7。"),
+    q("有 3 隻鳥，又飛來 4 隻，再飛走 2 隻，剩幾隻？",5,[4,5,6,7],"3 + 4 - 2 = 5。"),
+    q("比 6 大、比 9 小的數有幾個？",2,[1,2,3,4],"只有 7、8，共 2 個。"),
+    q("2 + 3 + 4 = ?",9,[8,9,10,11],"2+3=5，5+4=9。"),
+    q("10 - 2 - 3 = ?",5,[4,5,6,7],"10-2=8，8-3=5。"),
+    q("哪個數離 10 最近？",9,[6,7,8,9],"9 距離 10 只差 1。"),
+    q("4 + ? = 10",6,[4,5,6,7],"10 - 4 = 6。")
+  ],
+
+  "1-國語-初級":[
+    q("「大」的相反詞是？","小",["高","小","多","上"],"大和小是一組相反詞。"),
+    q("哪一個是動物？","小狗",["桌子","小狗","鉛筆","書包"],"小狗是動物。"),
+    q("「日」加一筆可以變成哪個字？","目",["木","目","田","白"],"日裡面再加一橫，可以變成「目」。"),
+    q("哪一個詞和「開心」意思比較接近？","快樂",["生氣","快樂","難過","害怕"],"開心和快樂意思相近。"),
+    q("「媽媽在廚房煮飯。」誰在煮飯？","媽媽",["爸爸","媽媽","老師","弟弟"],"句子主角是媽媽。"),
+    q("哪個字有「口」部？","喝",["喝","跑","看","花"],"「喝」左邊是口部。"),
+    q("「花」可以組成哪個詞？","花園",["花園","水杯","白雲","大門"],"花園是正確詞語。"),
+    q("哪一句最完整？","我今天去上學。",["今天上學","我今天去上學。","去學校我","今天去"],"完整句子要有人物與動作。"),
+    q("「早上」之後通常是？","中午",["昨天","中午","晚上","去年"],"早上之後是中午。"),
+    q("哪個字的讀音和「媽」相同聲母？","馬",["馬","大","花","家"],"媽、馬都以 ㄇ 開頭。")
+  ],
+  "1-國語-中級":[
+    q("「我把書放進書包。」書放在哪裡？","書包",["桌上","書包","地上","抽屜"],"句子說放進書包。"),
+    q("「小鳥在天空飛。」哪個詞表示動作？","飛",["小鳥","天空","飛","在"],"「飛」是動作。"),
+    q("哪一組詞語最適合？「今天下雨，我帶了___。」","雨傘",["帽子","雨傘","鉛筆","拖鞋"],"下雨最需要雨傘。"),
+    q("「安靜」的相反詞比較接近？","吵鬧",["開心","吵鬧","漂亮","快速"],"安靜和吵鬧意思相反。"),
+    q("把詞語排成完整句子：我／公園／去／玩","我去公園玩",["我去公園玩","公園我玩去","去玩我公園","玩公園去我"],"正確語序是「我去公園玩」。"),
+    q("哪個詞最適合形容太陽？","明亮",["明亮","冰冷","柔軟","安靜"],"太陽通常明亮。"),
+    q("「哥哥跑得很快。」誰跑得很快？","哥哥",["爸爸","妹妹","哥哥","老師"],"句子主角是哥哥。"),
+    q("「小魚在水裡游。」小魚在哪裡？","水裡",["樹上","天空","水裡","教室"],"句子直接說在水裡。"),
+    q("哪個詞可以和「快樂」搭配？","一天",["一天","桌子","鉛筆盒","石頭"],"「快樂的一天」語意自然。"),
+    q("「妹妹正在畫圖。」哪個詞表示正在做的事？","畫圖",["妹妹","正在","畫圖","沒有"],"正在做的事是畫圖。")
+  ],
+  "1-國語-困難":[
+    q("「因為下雨，所以我們沒有去公園。」沒去公園的原因是？","下雨",["太熱","下雨","太晚","肚子餓"],"「因為」後面說明原因。"),
+    q("「小明先寫功課，再看卡通。」先做什麼？","寫功課",["看卡通","寫功課","吃飯","睡覺"],"「先」表示第一個動作。"),
+    q("哪一句語序最自然？","我和媽媽一起去買菜。",["我一起媽媽去買菜","我和媽媽一起去買菜。","買菜我媽媽一起","媽媽買菜去我"],"這句語序完整自然。"),
+    q("「弟弟雖然累，還是把玩具收好。」弟弟最後有沒有收玩具？","有",["有","沒有","不知道","只收一半"],"「還是把玩具收好」表示最後有完成。"),
+    q("「今天風很大，樹葉一直搖。」樹葉搖的原因？","風很大",["下雨","風很大","有人推","天黑"],"前句提供原因。"),
+    q("哪個詞最適合填空？「妹妹看到禮物，___地笑了。」","開心",["生氣","開心","害怕","疲累"],"看到禮物通常是開心地笑。"),
+    q("「我喜歡蘋果，也喜歡香蕉。」我喜歡幾種水果？",2,[1,2,3,4],"蘋果和香蕉，共兩種。"),
+    q("哪一句是在問問題？","你今天開心嗎？",["今天天氣很好。","你今天開心嗎？","我吃完飯了。","妹妹在畫畫。"],"句尾有「嗎」並使用問號。"),
+    q("「小狗跑到門口，又跑回房間。」最後在哪裡？","房間",["門口","公園","房間","廚房"],"最後一個地點是房間。"),
+    q("「太陽下山了，天空慢慢變暗。」大約是什麼時候？","傍晚",["早上","中午","傍晚","半夜"],"太陽下山通常是傍晚。")
+  ],
+
+  "1-生活社會-初級":[
+    q("紅燈亮時應該怎麼做？","停下來",["快跑","停下來","繼續走","閉眼睛"],"紅燈停、綠燈行。"),
+    q("過馬路比較安全的方法？","走斑馬線",["隨便穿越","走斑馬線","邊跑邊玩","從車中間走"],"應走斑馬線並注意號誌。"),
+    q("在圖書館應該？","輕聲說話",["大聲叫","輕聲說話","追逐","唱歌"],"圖書館需要安靜。"),
+    q("上課想發言應該？","先舉手",["直接大叫","先舉手","離開教室","敲桌子"],"先舉手是良好上課禮貌。"),
+    q("垃圾應該丟在哪裡？","垃圾桶",["地上","桌上","垃圾桶","馬路"],"垃圾要丟進垃圾桶。"),
+    q("下雨天出門常用什麼？","雨傘",["雨傘","游泳圈","風箏","扇子"],"雨傘能遮雨。"),
+    q("生病時最適合做什麼？","告訴大人並休息",["繼續跑跳","告訴大人並休息","不喝水","熬夜"],"不舒服要告訴大人並休息。"),
+    q("吃飯前應該？","洗手",["洗手","跑步","睡覺","畫圖"],"飯前洗手有助保持衛生。"),
+    q("借別人的東西前要？","先詢問",["直接拿","先詢問","藏起來","丟掉"],"尊重別人要先詢問。"),
+    q("看到同學跌倒可以？","關心並找老師",["笑他","不理他","關心並找老師","推他"],"先關心，需要時找大人協助。")
+  ],
+  "1-生活社會-中級":[
+    q("在學校迷路，最適合找誰幫忙？","老師",["陌生人","老師","躲起來","自己亂跑"],"在校內可尋求老師協助。"),
+    q("家裡聞到很重的瓦斯味，應該先？","告訴大人並離開危險處",["開燈","點火","告訴大人並離開危險處","繼續睡"],"避免任何可能產生火花的行為。"),
+    q("和同學意見不同時，可以？","輪流說明想法",["吵架","打人","輪流說明想法","搶東西"],"用說明與傾聽解決問題。"),
+    q("排隊時正確做法？","依順序等待",["插隊","推人","依順序等待","大聲叫"],"排隊要依順序。"),
+    q("看到地上有水容易滑倒，應該？","提醒大人處理",["故意踩水","跑過去","提醒大人處理","不管"],"先避開並提醒大人處理。"),
+    q("為了省水，刷牙時可以？","關掉水龍頭",["一直放水","關掉水龍頭","玩水","把水倒掉"],"不用水時關掉水龍頭。"),
+    q("搭乘汽車時應該？","繫安全帶",["站著","繫安全帶","把頭伸出去","坐地板"],"安全帶能增加乘車安全。"),
+    q("和家人走散時最適合？","留在安全明顯處找工作人員",["亂跑","躲起來","留在安全明顯處找工作人員","自己回家"],"避免越走越遠，應尋求可信任工作人員協助。"),
+    q("別人正在說話時，可以？","先聽完再說",["一直打斷","先聽完再說","大聲搶話","離開"],"先傾聽是良好溝通習慣。"),
+    q("用完教室的物品應該？","放回原位",["丟地上","帶回家","放回原位","藏起來"],"公共物品使用後要歸位。")
+  ],
+  "1-生活社會-困難":[
+    q("地震正在搖晃時，較適合先做什麼？","趴下、掩護、穩住",["立刻衝樓梯","搭電梯","趴下、掩護、穩住","站窗邊"],"先保護頭頸並避開掉落物。"),
+    q("發現陌生人要你跟他走，應該？","拒絕並找可信任大人",["跟著走","保密","拒絕並找可信任大人","收禮物就去"],"不跟陌生人離開，立即尋求可信任成人。"),
+    q("同學不小心撞到你，他已經道歉，較好的做法？","先確認狀況再好好溝通",["立刻打回去","大哭罵人","先確認狀況再好好溝通","報復"],"先處理受傷情況，再用言語溝通。"),
+    q("如果你看到有人欺負同學，較適合？","告訴老師或可信任大人",["一起欺負","假裝沒看到","告訴老師或可信任大人","拍手叫好"],"需要安全地尋求大人協助。"),
+    q("停電時，哪一個做法比較安全？","使用手電筒",["點紙張照明","使用手電筒","亂摸插座","玩打火機"],"手電筒比明火安全。"),
+    q("想使用別人的照片上網分享前應該？","先取得同意",["直接上傳","先取得同意","加貼圖就可以","不必問"],"尊重別人的隱私與肖像。"),
+    q("公共場所看到遺失物，較適合？","交給服務人員",["自己帶走","丟掉","交給服務人員","藏起來"],"遺失物應交給管理或服務人員。"),
+    q("遇到火災時，不適合做哪件事？","搭電梯逃生",["聽從指示疏散","搭電梯逃生","低姿勢移動","離開危險區"],"火災時不應搭乘電梯。"),
+    q("同學說不想被拍照，你應該？","尊重他",["偷偷拍","強迫他","尊重他","笑他"],"每個人都有拒絕拍照的權利。"),
+    q("網路上有人問你的住址，較安全的做法？","不要提供並告訴大人",["直接告訴他","不要提供並告訴大人","只說一半","交換住址"],"個人住址屬於隱私資訊。")
+  ]
+};
+
+function q(text,answer,options,explain){return {text,answer,options,explain}}
+
+function makeFallback(grade,subject,level){
+  const arr=[];
+  for(let i=1;i<=14;i++){
+    if(subject==="數學"){
+      const base=grade*10 + i;
+      if(level==="初級") arr.push(q(`${base} + ${grade} = ?`,base+grade,[base+grade-1,base+grade,base+grade+1,base+grade+2],`${base} + ${grade} = ${base+grade}。`));
+      else if(level==="中級") arr.push(q(`小朋友有 ${base} 顆貼紙，又得到 ${grade+2} 顆，現在有幾顆？`,base+grade+2,[base+grade+1,base+grade+2,base+grade+3,base+grade+4],`用加法：${base} + ${grade+2}。`));
+      else arr.push(q(`有 ${base+8} 顆球，送出 ${grade+3} 顆，又拿回 ${grade} 顆，最後有幾顆？`,base+5,[base+4,base+5,base+6,base+7],`先減再加：${base+8}-${grade+3}+${grade}=${base+5}。`));
+    } else if(subject==="國語"){
+      const sets = level==="初級" ? [
+        ["哪個詞語最完整？","認真學習",["認真學習","認真桌子","學習杯子","跑步天空"]],
+        ["「勇敢」較接近哪個意思？","不害怕困難",["不害怕困難","一直睡覺","很會吃飯","沒有聲音"]]
+      ] : level==="中級" ? [
+        ["「因為天氣很好，所以我們去公園。」去公園的原因？","天氣很好",["天氣很好","忘記帶書","晚上了","下大雨"]],
+        ["哪一句語序最自然？","我放學後先寫功課。",["放學我功課先","我放學後先寫功課。","先我功課放學","功課放學我"]]
+      ] : [
+        ["「雖然下雨，我們還是準時到學校。」這句主要表示？","下雨但仍準時到校",["因為下雨所以沒去","下雨但仍準時到校","今天放假","學校關門"]],
+        ["「先整理書包，再檢查功課。」正確順序？","先整理書包",["先檢查功課","先整理書包","同時睡覺","先去玩"]]
+      ];
+      const s=sets[i%sets.length]; arr.push(q(s[0],s[1],s[2],`答案是「${s[1]}」。`));
+    } else {
+      const sets = grade<3 ? [
+        ["在公共場所應該怎麼做？","遵守規則並尊重別人",["大聲吵鬧","遵守規則並尊重別人","亂丟垃圾","推擠"]],
+        ["看到危險情況時較適合？","先遠離並找大人",["靠近看","先遠離並找大人","自己冒險處理","不理會"]]
+      ] : [
+        ["社區中提供借書服務的場所通常是？","圖書館",["圖書館","消防局","市場","郵局"]],
+        ["地圖上的方向標示可以幫助我們？","辨認方向",["辨認方向","計算體重","知道味道","聽音樂"]]
+      ];
+      const s=sets[i%sets.length]; arr.push(q(s[0],s[1],s[2],`這題重點是生活與社會情境判斷。`));
+    }
+  }
+  return arr;
+}
+
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+
+document.querySelectorAll('#gradeBtns .btn').forEach(b=>b.onclick=()=>selectGroup('gradeBtns',b,'grade'));
+document.querySelectorAll('#subjectBtns .btn').forEach(b=>b.onclick=()=>selectGroup('subjectBtns',b,'subject'));
+document.querySelectorAll('#levelBtns .btn').forEach(b=>b.onclick=()=>selectGroup('levelBtns',b,'level'));
+
+function selectGroup(id,btn,key){
+  document.querySelectorAll(`#${id} .btn`).forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  state[key]=btn.dataset.value;
+}
+
+document.getElementById('startBtn').onclick=()=>{
+  if(!state.grade||!state.subject||!state.level){
+    document.getElementById('setupMsg').textContent='請先把年級、科目、難度都選好喔 😊';
+    return;
+  }
+  startGame();
+};
+
+function startGame(customQuestions=null){
+  const key=`${state.grade}-${state.subject}-${state.level}`;
+  const source=customQuestions || bank[key] || makeFallback(Number(state.grade),state.subject,state.level);
+  state.questions=shuffle(source).slice(0,Math.min(10,source.length));
+  state.index=0;state.score=0;state.combo=0;state.wrong=[];state.locked=false;
+  document.getElementById('score').textContent='0';
+  document.getElementById('combo').textContent='0';
+  document.getElementById('modeLabel').textContent=`${state.grade}年級｜${state.subject==='生活社會'?(state.grade==='3'?'社會':'生活'):state.subject}｜${state.level}`;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  state.locked=false;
+  const item=state.questions[state.index];
+  document.getElementById('num').textContent=state.index+1;
+  document.getElementById('bar').style.width=`${(state.index/state.questions.length)*100}%`;
+  document.getElementById('question').textContent=item.text;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('explain').textContent='';
+  document.getElementById('nextBtn').classList.add('hidden');
+  const box=document.getElementById('answers');box.innerHTML='';
+  shuffle(item.options).forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='answer'; b.textContent=opt;
+    b.onclick=()=>answer(b,opt,item);
+    box.appendChild(b);
+  });
+}
+
+function answer(btn,opt,item){
+  if(state.locked)return;
+  state.locked=true;
+  const all=[...document.querySelectorAll('.answer')];
+  all.forEach(b=>b.disabled=true);
+  if(String(opt)===String(item.answer)){
+    btn.classList.add('correct'); state.score++;state.combo++;
+    document.getElementById('feedback').textContent=state.combo>=3?'🎉 連續答對！太強了！':'✅ 答對了！得到 1 顆星星';
+  }else{
+    btn.classList.add('wrong');state.combo=0;state.wrong.push(item);
+    all.forEach(b=>{if(String(b.textContent)===String(item.answer))b.classList.add('correct')});
+    document.getElementById('feedback').textContent=`💡 正確答案：${item.answer}`;
+  }
+  document.getElementById('score').textContent=state.score;
+  document.getElementById('combo').textContent=state.combo;
+  document.getElementById('explain').textContent=item.explain||'';
+  const n=document.getElementById('nextBtn');
+  n.textContent=state.index===state.questions.length-1?'看成績 🏆':'下一題 ➜';
+  n.classList.remove('hidden');
+}
+
+document.getElementById('nextBtn').onclick=()=>{
+  if(state.index<state.questions.length-1){state.index++;renderQuestion()}
+  else finish();
+};
+
+function finish(){
+  document.getElementById('bar').style.width='100%';
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('result').classList.remove('hidden');
+  const total=state.questions.length, pct=Math.round(state.score/total*100);
+  document.getElementById('resultEmoji').textContent=pct===100?'👑':pct>=80?'🌟':pct>=60?'👏':'💪';
+  document.getElementById('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b>｜得到 ⭐ <b>${state.score}</b>`;
+  const box=document.getElementById('wrongBox');
+  const retry=document.getElementById('retryWrong');
+  if(state.wrong.length){
+    box.classList.remove('hidden');
+    box.innerHTML='<b>這次的錯題：</b><br>'+state.wrong.map((x,i)=>`${i+1}. ${x.text} → ${x.answer}`).join('<br>');
+    retry.classList.remove('hidden');
+  }else{
+    box.classList.add('hidden');retry.classList.add('hidden');
+  }
+}
+
+document.getElementById('retryWrong').onclick=()=>{
+  const w=[...state.wrong];
+  startGame(w);
+};
+
+document.getElementById('restart').onclick=()=>{
+  document.getElementById('result').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+  document.getElementById('setupMsg').textContent='';
+};
+</script>
+</body>
+</html>
