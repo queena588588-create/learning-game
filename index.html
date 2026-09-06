@@ -60,7 +60,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseChild('美美')">👑 美美</button>
     </div>
     <div class="info" style="margin-top:14px">
-      選好後，答對題目累積滿 10 題會自動同步 ⭐1 顆到原本闖關樂園。
+      美美：20／50／90 題各解鎖 ⭐1，當日最多 ⭐3。穎寶：挑戰級累積答對 30 題且正確率達 80%，一次解鎖 ⭐3。
     </div>
   </section>
 
@@ -74,7 +74,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseGrade(3)">三年級</button>
     </div>
     <div class="info" style="margin-top:14px">
-      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。累積答對 10 題就自動獲得 ⭐1，答對進度會保存在這台裝置。
+      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。美美採 20／50／90 題階段獎勵；穎寶要到「⚡ 挑戰級」完成 30 題挑戰才拿 ⭐3。
     </div>
   </section>
 
@@ -91,7 +91,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseLevel('初級')">🌱 初級</button>
       <button class="btn" onclick="chooseLevel('中級')">🔥 中級</button>
       <button class="btn" onclick="chooseLevel('困難')">👑 困難</button>
-      <button class="btn" onclick="chooseLevel('挑戰')">⚡ 挑戰級 +20%</button>
+      <button class="btn" onclick="chooseLevel('挑戰')">⚡ 挑戰級｜30 題達標 ⭐3</button>
     </div>
   </section>
 
@@ -117,8 +117,8 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <div class="badge" id="modeLabel"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="badge">✅ 本局 <span id="score">0</span></div>
-        <div class="badge">⭐ 總星星 <span id="starBank">0</span></div>
-        <div class="badge">🌟 集星 <span id="starProgress">0</span>/10</div>
+        <div class="badge">⭐ 今日學習星 <span id="starBank">0</span></div>
+        <div class="badge" id="starRuleBadge">🌟 今日進度 <span id="starProgress">0</span></div>
         <div class="badge">🔥 Combo <span id="combo">0</span></div>
         <div class="badge">第 <span id="num">1</span>/<span id="total">10</span> 題</div>
       </div>
@@ -197,41 +197,115 @@ function chooseFresh(pool,count){
   return [...fresh,...old].slice(0,count);
 }
 
-/* ---------- 集星：答對10題 = 1顆星 ---------- */
-const STAR_KEY='learningGameStarsV3';
-const STAR_PROGRESS_KEY='learningGameStarProgressV3';
-function getStars(){return Number(localStorage.getItem(STAR_KEY)||0)}
-function getStarProgress(){return Number(localStorage.getItem(STAR_PROGRESS_KEY)||0)}
-function refreshStarUI(){
-  if($('starBank')) $('starBank').textContent=getStars();
-  if($('starProgress')) $('starProgress').textContent=getStarProgress();
+/* ---------- V8 分齡學習獎勵 ---------- */
+/*
+  美美：每日累積答對 20 / 50 / 90 題，各 +1⭐，每日最多 3⭐。
+  穎寶：只有「⚡ 挑戰級」計入挑戰；每日累積答對 30 題，且累積正確率 >= 80%，一次 +3⭐。
+*/
+const LEARNING_REWARD_VERSION='V8';
+const MEI_THRESHOLDS=[20,50,90];
+const YING_CHALLENGE_TARGET=30;
+const YING_MIN_ACCURACY=0.80;
+
+function localDayKey(){
+  const d=new Date();
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}${m}${day}`;
 }
-function addCorrectForStar(){
-  let progress=getStarProgress()+1;
-  let stars=getStars();
-  let earnedCount=0;
-  if(progress>=10){
-    earnedCount=Math.floor(progress/10);
-    stars+=earnedCount;
-    progress=progress%10;
-    localStorage.setItem(STAR_KEY,String(stars));
-    syncEarnedStars(earnedCount);
+function rewardStoreKey(child){return `learningRewardV8-${child}-${localDayKey()}`}
+function getRewardState(child){
+  try{
+    const raw=JSON.parse(localStorage.getItem(rewardStoreKey(child))||'{}');
+    return {
+      meiCorrect:Number(raw.meiCorrect||0),
+      meiAwarded:Array.isArray(raw.meiAwarded)?raw.meiAwarded.map(Number):[],
+      yingCorrect:Number(raw.yingCorrect||0),
+      yingAttempts:Number(raw.yingAttempts||0),
+      yingAwarded:Boolean(raw.yingAwarded),
+      todayStars:Number(raw.todayStars||0)
+    };
+  }catch(e){
+    return {meiCorrect:0,meiAwarded:[],yingCorrect:0,yingAttempts:0,yingAwarded:false,todayStars:0};
   }
-  localStorage.setItem(STAR_PROGRESS_KEY,String(progress));
-  refreshStarUI();
-  return earnedCount>0;
+}
+function saveRewardState(child,s){localStorage.setItem(rewardStoreKey(child),JSON.stringify(s))}
+function getTodayLearningStars(){return state.child?getRewardState(state.child).todayStars:0}
+
+function refreshStarUI(){
+  if(!$('starBank')||!$('starProgress'))return;
+  const child=state.child;
+  if(!child){$('starBank').textContent='0';$('starProgress').textContent='—';return}
+  const s=getRewardState(child);
+  $('starBank').textContent=s.todayStars;
+
+  if(child==='美美'){
+    const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
+    $('starProgress').textContent=next?`答對 ${s.meiCorrect}｜下一顆 ${next} 題`:`答對 ${s.meiCorrect}｜今日 ⭐3 已完成`;
+  }else{
+    const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
+    if(state.level==='挑戰'){
+      $('starProgress').textContent=`挑戰 ${s.yingCorrect}/${YING_CHALLENGE_TARGET}｜正確率 ${acc}%`;
+    }else{
+      $('starProgress').textContent=s.yingAwarded?'今日挑戰 ⭐3 已完成':'到 ⚡ 挑戰級累積 30 題 → ⭐3';
+    }
+  }
 }
 
-function syncEarnedStars(count){
-  if(!count || !state.child) return;
-  if(!CHALLENGE_PARK_SYNC_URL || CHALLENGE_PARK_SYNC_URL.includes('PASTE_YOUR')) return;
+function addMeiCorrect(){
+  const s=getRewardState('美美');
+  s.meiCorrect++;
+  const newly=MEI_THRESHOLDS.filter(t=>s.meiCorrect>=t&&!s.meiAwarded.includes(t));
+  newly.forEach(t=>{
+    s.meiAwarded.push(t);
+    s.todayStars+=1;
+    syncLearningReward('MEI-'+t,1,`美美今日累積答對 ${t} 題`);
+  });
+  saveRewardState('美美',s);
+  refreshStarUI();
+  return newly.length?{earned:newly.length,threshold:newly[newly.length-1]}:{earned:0};
+}
 
-  const sourceId='LEARNING-'+state.child+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
+function addYingChallengeAttempt(correct){
+  const s=getRewardState('穎寶');
+  s.yingAttempts++;
+  if(correct)s.yingCorrect++;
+  let earned=0;
+  const accuracy=s.yingAttempts?s.yingCorrect/s.yingAttempts:1;
+  if(!s.yingAwarded && s.yingCorrect>=YING_CHALLENGE_TARGET && accuracy>=YING_MIN_ACCURACY){
+    s.yingAwarded=true;
+    s.todayStars+=3;
+    earned=3;
+    syncLearningReward('YING-CHALLENGE-30',3,`穎寶挑戰級累積答對 30 題，正確率 ${Math.round(accuracy*100)}%`);
+  }
+  saveRewardState('穎寶',s);
+  refreshStarUI();
+  return {earned,accuracy,correct:s.yingCorrect,attempts:s.yingAttempts};
+}
+
+function handleLearningAnswerReward(isCorrect){
+  if(state.child==='美美'){
+    if(!isCorrect)return {earned:0};
+    return addMeiCorrect();
+  }
+  if(state.child==='穎寶' && state.level==='挑戰' && state.mode==='normal'){
+    return addYingChallengeAttempt(Boolean(isCorrect));
+  }
+  refreshStarUI();
+  return {earned:0};
+}
+
+function syncLearningReward(rewardCode,stars,detail){
+  if(!state.child||!rewardCode)return;
+  if(!CHALLENGE_PARK_SYNC_URL||CHALLENGE_PARK_SYNC_URL.includes('PASTE_YOUR'))return;
+
   const body=new URLSearchParams({
     action:'learningGameStar',
     child:state.child,
-    stars:String(count),
-    sourceId:sourceId
+    rewardCode:String(rewardCode),
+    stars:String(stars),
+    detail:String(detail||''),
+    clientDate:localDayKey(),
+    version:LEARNING_REWARD_VERSION
   });
 
   fetch(CHALLENGE_PARK_SYNC_URL,{
@@ -652,13 +726,33 @@ function renderQuestion(){
 function answer(btn,opt,item){
   if(state.locked)return;state.locked=true;
   const all=[...document.querySelectorAll('.answer')];all.forEach(b=>b.disabled=true);
-  if(String(opt)===item.answer){
+  const isCorrect=String(opt)===item.answer;
+  let reward={earned:0};
+
+  if(isCorrect){
     btn.classList.add('correct');state.score++;state.combo++;
-    const earned=addCorrectForStar();
-    $('feedback').textContent=earned?'🌟 累積答對 10 題！獲得 ⭐1 顆！':(state.combo>=3?'🎉 連續答對！集星進度 +1':'✅ 答對了！集星進度 +1');
+    reward=handleLearningAnswerReward(true);
+
+    if(reward.earned===3){
+      $('feedback').textContent='🏆 挑戰達標！30 題＋正確率達標，獲得 ⭐3 顆！';
+    }else if(reward.earned===1 && state.child==='美美'){
+      $('feedback').textContent=`🌟 達成 ${reward.threshold} 題里程碑！獲得 ⭐1 顆！`;
+    }else if(state.child==='美美'){
+      const s=getRewardState('美美');
+      const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
+      $('feedback').textContent=next?`✅ 答對了！今天累積 ${s.meiCorrect} 題，再到 ${next} 題拿下一顆 ⭐`:'👑 今天 3 顆學習星已完成！可以繼續挑戰學習。';
+    }else if(state.child==='穎寶' && state.level==='挑戰'){
+      const s=getRewardState('穎寶');
+      const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
+      $('feedback').textContent=`⚡ 挑戰累積 ${s.yingCorrect}/30｜正確率 ${acc}%`;
+    }else{
+      $('feedback').textContent=state.combo>=3?'🎉 連續答對！':'✅ 答對了！';
+    }
   }else{
     btn.classList.add('wrong');state.combo=0;state.wrong.push(item);
     all.forEach(b=>{if(b.textContent===item.answer)b.classList.add('correct')});
+    if(state.child==='穎寶' && state.level==='挑戰')handleLearningAnswerReward(false);
+    else refreshStarUI();
     $('feedback').textContent=`💡 正確答案：${item.answer}`;
   }
   $('score').textContent=state.score;$('combo').textContent=state.combo;$('explain').textContent=item.explain||'';
@@ -669,7 +763,25 @@ function finish(){
   saveRecent(state.questions.map(x=>x.id));
   show('result');const total=state.questions.length,pct=Math.round(state.score/total*100);
   $('resultEmoji').textContent=pct===100?'👑':pct>=80?'🌟':pct>=60?'👏':'💪';
-  $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b><br>⭐ 累積答對每 10 題，自動獲得 1 顆星`;
+
+  let rewardText='';
+  if(state.child==='美美'){
+    const s=getRewardState('美美');
+    const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
+    rewardText=next
+      ? `今天已答對 <b>${s.meiCorrect}</b> 題｜下一顆星：累積 <b>${next}</b> 題`
+      : `今天已完成最高 <b>⭐3</b> 學習獎勵！`;
+  }else if(state.level==='挑戰'){
+    const s=getRewardState('穎寶');
+    const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
+    rewardText=s.yingAwarded
+      ? `⚡ 今日挑戰完成：<b>⭐3</b>`
+      : `⚡ 挑戰進度：答對 <b>${s.yingCorrect}/30</b>｜正確率 <b>${acc}%</b>（需 80%）`;
+  }else{
+    rewardText='⚡ 穎寶請到「挑戰級」完成 30 題挑戰，達標一次獲得 ⭐3。';
+  }
+
+  $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b><br>${rewardText}`;
   if(state.wrong.length){
     $('wrongBox').classList.remove('hidden');
     $('wrongBox').innerHTML='<b>這次的錯題：</b><br>'+state.wrong.map((x,i)=>`${i+1}. ${x.text} → ${x.answer}`).join('<br>');
