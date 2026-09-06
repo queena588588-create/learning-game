@@ -37,25 +37,6 @@ font-size:21px;font-weight:900;cursor:pointer;padding:12px}
 .next{display:block;margin:15px auto 0;border:none;border-radius:16px;padding:13px 22px;
 background:#705cff;color:#fff;font-weight:900;font-size:17px;cursor:pointer}
 .hidden{display:none!important}.result{text-align:center}.result h2{font-size:32px}
-.home-cover{
-  min-height:540px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;background:linear-gradient(180deg,#eaf8ff,#fff8e8 58%,#f8efff);
-  position:relative;overflow:hidden
-}
-.home-cover:before{
-  content:"⭐  📚  ✨  🏝️  🎮  ⚡  👑";
-  position:absolute;inset:28px 0 auto 0;font-size:27px;letter-spacing:12px;opacity:.22
-}
-.home-island{font-size:78px;margin-bottom:6px}
-.home-title{font-size:38px;font-weight:1000;color:#293449;line-height:1.2}
-.home-sub{margin-top:10px;color:#66758a;font-size:17px;line-height:1.7}
-.home-actions{width:min(520px,100%);display:grid;gap:12px;margin-top:28px}
-.home-start{
-  border:0;border-radius:22px;padding:18px 20px;font-size:21px;font-weight:1000;cursor:pointer;
-  background:linear-gradient(135deg,#6c83ff,#7c5cff);color:#fff;box-shadow:0 12px 28px rgba(85,91,210,.22)
-}
-.home-note{margin-top:16px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,.72);color:#657080;font-size:14px}
-
 .wrong-list{text-align:left;background:#fafafa;border-radius:16px;padding:14px;margin-top:14px;line-height:1.7}
 .story{background:linear-gradient(180deg,#fffaf0,#fff);border:2px solid #f2dfb7;border-radius:22px;
 padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
@@ -72,27 +53,14 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
     <div class="sub">長期題庫版｜動態出題・近期避重複・短篇閱讀</div>
   </div>
 
-  <section id="homeScreen" class="panel home-cover">
-    <div class="home-island">🏝️</div>
-    <div class="home-title">學習冒險島</div>
-    <div class="home-sub">穎寶＆美美的專屬學習樂園<br>今天也一起完成一個小挑戰 ✨</div>
-    <div class="home-actions">
-      <button class="home-start" onclick="show('childScreen')">🚀 開始今天的學習冒險</button>
-    </div>
-    <div class="home-note">
-      👑 美美：20／50／90 題階段獎勵｜⚡ 穎寶：挑戰級 30 題達標 ⭐3
-    </div>
-  </section>
-
-  <section id="childScreen" class="panel hidden">
-    <button class="back" onclick="show('homeScreen')">⬅ 回學習冒險島首頁</button>
+  <section id="childScreen" class="panel">
     <div class="step">先選今天是誰在玩</div>
     <div class="grid" style="grid-template-columns:repeat(2,1fr)">
       <button class="btn" onclick="chooseChild('穎寶')">⚡ 穎寶</button>
       <button class="btn" onclick="chooseChild('美美')">👑 美美</button>
     </div>
     <div class="info" style="margin-top:14px">
-      美美：20／50／90 題各解鎖 ⭐1，當日最多 ⭐3。穎寶：挑戰級累積答對 30 題且正確率達 80%，一次解鎖 ⭐3。
+      美美：今日答對 20／50／90 題各得 ⭐1，最多 ⭐3。穎寶：挑戰級每 30 題為一輪，正確率達 80% 得 ⭐3。
     </div>
   </section>
 
@@ -106,7 +74,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseGrade(3)">三年級</button>
     </div>
     <div class="info" style="margin-top:14px">
-      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。美美採 20／50／90 題階段獎勵；穎寶要到「⚡ 挑戰級」完成 30 題挑戰才拿 ⭐3。
+      每局 15 題。美美以答對題數累積獎勵；穎寶只有「⚡ 挑戰級」計入 30 題挑戰，兩局剛好一輪，需達 80% 正確率。
     </div>
   </section>
 
@@ -150,7 +118,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="badge">✅ 本局 <span id="score">0</span></div>
         <div class="badge">⭐ 今日學習星 <span id="starBank">0</span></div>
-        <div class="badge" id="starRuleBadge">🌟 今日進度 <span id="starProgress">0</span></div>
+        <div class="badge">🌟 進度 <span id="starProgress">0</span></div>
         <div class="badge">🔥 Combo <span id="combo">0</span></div>
         <div class="badge">第 <span id="num">1</span>/<span id="total">10</span> 題</div>
       </div>
@@ -195,12 +163,14 @@ function chooseChild(child){
 }
 (function autoChildFromUrl(){
   const urlChild=new URLSearchParams(location.search).get('child');
+  const saved=localStorage.getItem('learningGameChild');
   if(urlChild==='穎寶'||urlChild==='美美'){
     state.child=urlChild;
     localStorage.setItem('learningGameChild',urlChild);
     setTimeout(()=>show('gradeScreen'),0);
-  }else{
-    setTimeout(()=>show('homeScreen'),0);
+  }else if(saved==='穎寶'||saved==='美美'){
+    state.child=saved;
+    setTimeout(()=>show('gradeScreen'),0);
   }
 })();
 function wrongOptions(ans,spread=4){
@@ -227,56 +197,57 @@ function chooseFresh(pool,count){
   return [...fresh,...old].slice(0,count);
 }
 
-/* ---------- V8 分齡學習獎勵 ---------- */
-/*
-  美美：每日累積答對 20 / 50 / 90 題，各 +1⭐，每日最多 3⭐。
-  穎寶：只有「⚡ 挑戰級」計入挑戰；每日累積答對 30 題，且累積正確率 >= 80%，一次 +3⭐。
-*/
-const LEARNING_REWARD_VERSION='V8';
+/* ---------- V8C 分齡學習獎勵 ---------- */
+const LEARNING_REWARD_VERSION='V8C';
 const MEI_THRESHOLDS=[20,50,90];
-const YING_CHALLENGE_TARGET=30;
+const YING_CHALLENGE_SIZE=30;
 const YING_MIN_ACCURACY=0.80;
 
 function localDayKey(){
   const d=new Date();
-  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
-  return `${y}${m}${day}`;
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 }
-function rewardStoreKey(child){return `learningRewardV8-${child}-${localDayKey()}`}
+function rewardStoreKey(child){return `learningRewardV8C-${child}-${localDayKey()}`}
 function getRewardState(child){
   try{
     const raw=JSON.parse(localStorage.getItem(rewardStoreKey(child))||'{}');
     return {
       meiCorrect:Number(raw.meiCorrect||0),
       meiAwarded:Array.isArray(raw.meiAwarded)?raw.meiAwarded.map(Number):[],
-      yingCorrect:Number(raw.yingCorrect||0),
-      yingAttempts:Number(raw.yingAttempts||0),
+      yingRoundCorrect:Number(raw.yingRoundCorrect||0),
+      yingRoundAttempts:Number(raw.yingRoundAttempts||0),
       yingAwarded:Boolean(raw.yingAwarded),
       todayStars:Number(raw.todayStars||0)
     };
   }catch(e){
-    return {meiCorrect:0,meiAwarded:[],yingCorrect:0,yingAttempts:0,yingAwarded:false,todayStars:0};
+    return {meiCorrect:0,meiAwarded:[],yingRoundCorrect:0,yingRoundAttempts:0,yingAwarded:false,todayStars:0};
   }
 }
 function saveRewardState(child,s){localStorage.setItem(rewardStoreKey(child),JSON.stringify(s))}
-function getTodayLearningStars(){return state.child?getRewardState(state.child).todayStars:0}
 
 function refreshStarUI(){
   if(!$('starBank')||!$('starProgress'))return;
-  const child=state.child;
-  if(!child){$('starBank').textContent='0';$('starProgress').textContent='—';return}
-  const s=getRewardState(child);
+  if(!state.child){
+    $('starBank').textContent='0';
+    $('starProgress').textContent='—';
+    return;
+  }
+  const s=getRewardState(state.child);
   $('starBank').textContent=s.todayStars;
 
-  if(child==='美美'){
-    const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
-    $('starProgress').textContent=next?`答對 ${s.meiCorrect}｜下一顆 ${next} 題`:`答對 ${s.meiCorrect}｜今日 ⭐3 已完成`;
+  if(state.child==='美美'){
+    const next=MEI_THRESHOLDS.find(t=>!s.meiAwarded.includes(t));
+    $('starProgress').textContent=next
+      ? `答對 ${s.meiCorrect}｜下一顆 ${next} 題`
+      : `答對 ${s.meiCorrect}｜今日 ⭐3 已完成`;
   }else{
-    const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
-    if(state.level==='挑戰'){
-      $('starProgress').textContent=`挑戰 ${s.yingCorrect}/${YING_CHALLENGE_TARGET}｜正確率 ${acc}%`;
+    if(s.yingAwarded){
+      $('starProgress').textContent='今日挑戰 ⭐3 已完成';
+    }else if(state.level==='挑戰'){
+      const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
+      $('starProgress').textContent=`本輪 ${s.yingRoundAttempts}/30｜答對 ${s.yingRoundCorrect}｜${acc}%`;
     }else{
-      $('starProgress').textContent=s.yingAwarded?'今日挑戰 ⭐3 已完成':'到 ⚡ 挑戰級累積 30 題 → ⭐3';
+      $('starProgress').textContent='到 ⚡ 挑戰級完成 30 題 → ⭐3';
     }
   }
 }
@@ -297,25 +268,50 @@ function addMeiCorrect(){
 
 function addYingChallengeAttempt(correct){
   const s=getRewardState('穎寶');
-  s.yingAttempts++;
-  if(correct)s.yingCorrect++;
-  let earned=0;
-  const accuracy=s.yingAttempts?s.yingCorrect/s.yingAttempts:1;
-  if(!s.yingAwarded && s.yingCorrect>=YING_CHALLENGE_TARGET && accuracy>=YING_MIN_ACCURACY){
-    s.yingAwarded=true;
-    s.todayStars+=3;
-    earned=3;
-    syncLearningReward('YING-CHALLENGE-30',3,`穎寶挑戰級累積答對 30 題，正確率 ${Math.round(accuracy*100)}%`);
+  if(s.yingAwarded){
+    refreshStarUI();
+    return {earned:0,finished:true,already:true};
   }
+
+  s.yingRoundAttempts++;
+  if(correct)s.yingRoundCorrect++;
+
+  let result={earned:0,finished:false};
+  if(s.yingRoundAttempts>=YING_CHALLENGE_SIZE){
+    const accuracy=s.yingRoundCorrect/s.yingRoundAttempts;
+    result={
+      earned:0,
+      finished:true,
+      accuracy:accuracy,
+      correct:s.yingRoundCorrect,
+      attempts:s.yingRoundAttempts
+    };
+
+    if(accuracy>=YING_MIN_ACCURACY){
+      s.yingAwarded=true;
+      s.todayStars+=3;
+      result.earned=3;
+      syncLearningReward(
+        'YING-CHALLENGE-30',
+        3,
+        `穎寶挑戰 30 題，答對 ${s.yingRoundCorrect} 題，正確率 ${Math.round(accuracy*100)}%`
+      );
+    }else{
+      // 未達 80%：本輪結束，下一題開始重新累積一輪 30 題。
+      s.yingRoundAttempts=0;
+      s.yingRoundCorrect=0;
+      result.reset=true;
+    }
+  }
+
   saveRewardState('穎寶',s);
   refreshStarUI();
-  return {earned,accuracy,correct:s.yingCorrect,attempts:s.yingAttempts};
+  return result;
 }
 
 function handleLearningAnswerReward(isCorrect){
   if(state.child==='美美'){
-    if(!isCorrect)return {earned:0};
-    return addMeiCorrect();
+    return isCorrect?addMeiCorrect():{earned:0};
   }
   if(state.child==='穎寶' && state.level==='挑戰' && state.mode==='normal'){
     return addYingChallengeAttempt(Boolean(isCorrect));
@@ -764,51 +760,70 @@ function answer(btn,opt,item){
     reward=handleLearningAnswerReward(true);
 
     if(reward.earned===3){
-      $('feedback').textContent='🏆 挑戰達標！30 題＋正確率達標，獲得 ⭐3 顆！';
+      $('feedback').textContent='🏆 挑戰成功！30 題正確率達 80%，獲得 ⭐3 顆！';
     }else if(reward.earned===1 && state.child==='美美'){
       $('feedback').textContent=`🌟 達成 ${reward.threshold} 題里程碑！獲得 ⭐1 顆！`;
     }else if(state.child==='美美'){
       const s=getRewardState('美美');
-      const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
-      $('feedback').textContent=next?`✅ 答對了！今天累積 ${s.meiCorrect} 題，再到 ${next} 題拿下一顆 ⭐`:'👑 今天 3 顆學習星已完成！可以繼續挑戰學習。';
+      const next=MEI_THRESHOLDS.find(t=>!s.meiAwarded.includes(t));
+      $('feedback').textContent=next
+        ? `✅ 答對了！今天累積 ${s.meiCorrect} 題，再到 ${next} 題拿下一顆 ⭐`
+        : '👑 今天 3 顆學習星已完成！可以繼續玩，但不會再加星。';
     }else if(state.child==='穎寶' && state.level==='挑戰'){
       const s=getRewardState('穎寶');
-      const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
-      $('feedback').textContent=`⚡ 挑戰累積 ${s.yingCorrect}/30｜正確率 ${acc}%`;
+      if(reward.finished && reward.reset){
+        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 30 題！`;
+      }else{
+        const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
+        $('feedback').textContent=`⚡ 本輪 ${s.yingRoundAttempts}/30｜答對 ${s.yingRoundCorrect}｜正確率 ${acc}%`;
+      }
     }else{
       $('feedback').textContent=state.combo>=3?'🎉 連續答對！':'✅ 答對了！';
     }
   }else{
     btn.classList.add('wrong');state.combo=0;state.wrong.push(item);
     all.forEach(b=>{if(b.textContent===item.answer)b.classList.add('correct')});
-    if(state.child==='穎寶' && state.level==='挑戰')handleLearningAnswerReward(false);
-    else refreshStarUI();
-    $('feedback').textContent=`💡 正確答案：${item.answer}`;
+    if(state.child==='穎寶' && state.level==='挑戰'){
+      reward=handleLearningAnswerReward(false);
+      if(reward.finished && reward.reset){
+        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 30 題！`;
+      }else{
+        $('feedback').textContent=`💡 正確答案：${item.answer}`;
+      }
+    }else{
+      refreshStarUI();
+      $('feedback').textContent=`💡 正確答案：${item.answer}`;
+    }
   }
-  $('score').textContent=state.score;$('combo').textContent=state.combo;$('explain').textContent=item.explain||'';
-  $('nextBtn').textContent=state.index===state.questions.length-1?'看成績 🏆':'下一題 ➜';$('nextBtn').classList.remove('hidden');
+
+  $('score').textContent=state.score;
+  $('combo').textContent=state.combo;
+  $('explain').textContent=item.explain||'';
+  $('nextBtn').textContent=state.index===state.questions.length-1?'看成績 🏆':'下一題 ➜';
+  $('nextBtn').classList.remove('hidden');
 }
 $('nextBtn').onclick=()=>{if(state.index<state.questions.length-1){state.index++;renderQuestion()}else finish()};
 function finish(){
   saveRecent(state.questions.map(x=>x.id));
-  show('result');const total=state.questions.length,pct=Math.round(state.score/total*100);
+  show('result');
+  const total=state.questions.length,pct=Math.round(state.score/total*100);
   $('resultEmoji').textContent=pct===100?'👑':pct>=80?'🌟':pct>=60?'👏':'💪';
 
   let rewardText='';
   if(state.child==='美美'){
     const s=getRewardState('美美');
-    const next=MEI_THRESHOLDS.find(x=>!s.meiAwarded.includes(x));
+    const next=MEI_THRESHOLDS.find(t=>!s.meiAwarded.includes(t));
     rewardText=next
-      ? `今天已答對 <b>${s.meiCorrect}</b> 題｜下一顆星：累積 <b>${next}</b> 題`
-      : `今天已完成最高 <b>⭐3</b> 學習獎勵！`;
+      ? `今天已累積答對 <b>${s.meiCorrect}</b> 題｜下一顆：<b>${next}</b> 題`
+      : '今天已完成最高 <b>⭐3</b> 學習獎勵！';
   }else if(state.level==='挑戰'){
     const s=getRewardState('穎寶');
-    const acc=s.yingAttempts?Math.round(s.yingCorrect/s.yingAttempts*100):100;
+    const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
     rewardText=s.yingAwarded
-      ? `⚡ 今日挑戰完成：<b>⭐3</b>`
-      : `⚡ 挑戰進度：答對 <b>${s.yingCorrect}/30</b>｜正確率 <b>${acc}%</b>（需 80%）`;
+      ? '⚡ 今日挑戰已完成：<b>⭐3</b>'
+      : `⚡ 本輪進度：<b>${s.yingRoundAttempts}/30</b>｜答對 <b>${s.yingRoundCorrect}</b>｜正確率 <b>${acc}%</b>`;
   }else{
-    rewardText='⚡ 穎寶請到「挑戰級」完成 30 題挑戰，達標一次獲得 ⭐3。';
+    rewardText='⚡ 穎寶要到「挑戰級」完成 30 題，正確率達 80% 才會獲得 ⭐3。';
   }
 
   $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b><br>${rewardText}`;
@@ -816,7 +831,10 @@ function finish(){
     $('wrongBox').classList.remove('hidden');
     $('wrongBox').innerHTML='<b>這次的錯題：</b><br>'+state.wrong.map((x,i)=>`${i+1}. ${x.text} → ${x.answer}`).join('<br>');
     $('retryWrong').classList.remove('hidden');
-  }else{$('wrongBox').classList.add('hidden');$('retryWrong').classList.add('hidden')}
+  }else{
+    $('wrongBox').classList.add('hidden');
+    $('retryWrong').classList.add('hidden');
+  }
 }
 $('retryWrong').onclick=()=>launch([...state.wrong]);
 $('again').onclick=()=>{if(state.mode==='reading')launch(state.selectedStory.questions);else startNormalGame()};
