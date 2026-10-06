@@ -202,6 +202,55 @@ const state={child:null,grade:null,subject:null,level:null,mode:'normal',selecte
 const KINDERGARTEN_VOICE_KEY='learningKindergartenVoiceV1';
 let kindergartenVoiceOn=localStorage.getItem(KINDERGARTEN_VOICE_KEY)!=='off';
 
+const ZHUYIN_SPEECH_MAP={
+  'ㄅ':'爸爸的開頭聲音',
+  'ㄆ':'蘋果的開頭聲音',
+  'ㄇ':'媽媽的開頭聲音',
+  'ㄈ':'飛機的開頭聲音',
+  'ㄉ':'蛋糕的開頭聲音',
+  'ㄊ':'兔子的開頭聲音',
+  'ㄋ':'牛奶的開頭聲音',
+  'ㄌ':'老虎的開頭聲音',
+  'ㄍ':'哥哥的開頭聲音',
+  'ㄎ':'恐龍的開頭聲音',
+  'ㄏ':'河馬的開頭聲音',
+  'ㄐ':'雞蛋的開頭聲音',
+  'ㄑ':'氣球的開頭聲音',
+  'ㄒ':'西瓜的開頭聲音',
+  'ㄓ':'蜘蛛的開頭聲音',
+  'ㄔ':'尺的開頭聲音',
+  'ㄕ':'獅子的開頭聲音',
+  'ㄖ':'日曆的開頭聲音',
+  'ㄗ':'紫色的開頭聲音',
+  'ㄘ':'草莓的開頭聲音',
+  'ㄙ':'掃把的開頭聲音',
+  'ㄧ':'一的注音',
+  'ㄨ':'烏龜的開頭聲音',
+  'ㄩ':'魚的開頭聲音'
+};
+
+function zhuyinSpeechLabel(v){
+  const s=String(v||'').trim();
+  return ZHUYIN_SPEECH_MAP[s]||s;
+}
+
+function speechTextForKindergartenQuestion(text){
+  let t=String(text||'');
+  // 對「請找出 ㄅ」這類題目，不把孤立注音直接交給 TTS。
+  t=t.replace(/請找出「([ㄅ-ㄩ])」/g,(m,z)=>'請找出'+zhuyinSpeechLabel(z));
+  t=t.replace(/今天要練習寫哪一個？\s*([ㄅ-ㄩ])/g,(m,z)=>'今天要練習寫'+zhuyinSpeechLabel(z));
+  // 其他句子中的孤立注音也改成提示詞，避免手機把符號念得很怪。
+  t=t.replace(/「([ㄅ-ㄩ])」/g,(m,z)=>zhuyinSpeechLabel(z));
+  return t;
+}
+
+function speechTextForKindergartenOption(text){
+  const s=String(text||'').trim();
+  if(ZHUYIN_SPEECH_MAP[s])return zhuyinSpeechLabel(s);
+  return s;
+}
+
+
 function isKindergartenVoiceMode(){
   return state.child==='美美' && state.grade==='幼兒園' && String(state.subject||'').startsWith('幼兒');
 }
@@ -231,8 +280,10 @@ function buildKindergartenSpeech(item){
   if(!item)return '';
   const opts=[...document.querySelectorAll('#answers .answer')].map(b=>b.textContent.trim());
   const labels=['第一個選項','第二個選項','第三個選項','第四個選項'];
-  let t='題目。'+item.text+'。';
-  opts.forEach((o,i)=>{t+=(labels[i]||('第'+(i+1)+'個選項'))+'，'+o+'。';});
+  let t='題目。'+speechTextForKindergartenQuestion(item.text)+'。';
+  opts.forEach((o,i)=>{
+    t+=(labels[i]||('第'+(i+1)+'個選項'))+'，'+speechTextForKindergartenOption(o)+'。';
+  });
   t+='請選一個答案。';
   return t;
 }
@@ -240,7 +291,7 @@ function buildKindergartenSpeech(item){
 function speakCurrentQuestion(){
   if(!isKindergartenVoiceMode())return;
   const item=state.questions[state.index];
-  speakText(buildKindergartenSpeech(item),'zh-TW',.80);
+  speakText(buildKindergartenSpeech(item),'zh-TW',.75);
 }
 
 function toggleKindergartenVoice(){
