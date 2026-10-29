@@ -116,7 +116,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
     <div class="home-sub">穎寶＆美美的專屬學習樂園<br>今天也一起完成一個小挑戰 ✨</div>
     <div class="home-actions">
       <button class="home-start" onclick="startAdventureFromHome()">🚀 開始今天的學習冒險</button>
-      <button class="pokedex-entry" onclick="openPokedex()">📖 寶可夢圖鑑｜看看收集到誰了</button>
+      <button class="pokedex-entry" onclick="openPokedexFrom('homeScreen')">📖 寶可夢圖鑑｜看看收集到誰了</button>
     </div>
     <div id="dailyMissionBox" class="daily-mission"></div>
     <div class="home-note">
@@ -125,7 +125,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
   </section>
 
   <section id="childScreen" class="panel hidden">
-    <button class="back" onclick="show('homeScreen')">⬅ 回學習冒險島首頁</button>
+    <button class="back" onclick="closePokedex()">⬅ 回上一頁</button>
     <div class="step">先選今天是誰在玩</div>
     <div class="grid" style="grid-template-columns:repeat(2,1fr)">
       <button class="btn" onclick="chooseChild('穎寶')">⚡ 穎寶</button>
@@ -193,7 +193,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="badge">🧩 碎片 <span id="pokeFragmentTotal">0</span></div><div class="badge" id="pokeCloudStatus">☁️ 同步中</div></div>
     </div>
     <div class="info" style="margin-top:12px">
-      ⭐ 過關星星會先出現，接著才開寶箱拿碎片。集滿 5 個碎片，就能解鎖 1 隻寶可夢。
+      ⭐ 過關星星會先出現，接著才開寶箱拿碎片。集滿 3 個碎片，就能解鎖 1 隻寶可夢。
     </div>
     <div class="pokedex-grid" id="pokedexGrid"></div>
     <div class="pokedex-note">☁️ 圖鑑進度已同步到家庭雲端，換手機或清除瀏覽器資料也能重新載回。</div>
@@ -230,7 +230,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
     <div id="wrongBox" class="wrong-list hidden"></div>
     <button id="retryWrong" class="next hidden">錯題再挑戰 🔁</button>
     <button id="again" class="next">同一關再玩一次 🎮</button>
-    <button class="next" style="background:#ffe7f1;color:#a53b6f" onclick="openPokedex()">📖 看寶可夢圖鑑</button>
+    <button class="next" style="background:#ffe7f1;color:#a53b6f" onclick="openPokedexFrom('result')">📖 看寶可夢圖鑑</button>
     <button id="backMenu" class="next" style="background:#eef2f8;color:#384152">回上一層選單 ⬅</button>
   </section>
 </div>
@@ -250,7 +250,7 @@ const CHALLENGE_PARK_SYNC_URL = 'https://script.google.com/macros/s/AKfycby-6r_k
 const state={child:null,grade:null,subject:null,level:null,mode:'normal',selectedStory:null,questions:[],index:0,score:0,combo:0,wrong:[],locked:false,lastSource:[]};
 
 /* ---------- V10 遊戲化獎勵 ---------- */
-const POKE_FRAGMENT_NEED=5;
+const POKE_FRAGMENT_NEED=3;
 const POKEMON_BANK=[
   {id:25,name:'皮卡丘',sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'},
   {id:133,name:'伊布',sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png'},
@@ -477,7 +477,7 @@ function showStarThenPokemonReward(starText){
                 sub:'已經放進你的寶可夢圖鑑了！',
                 button:'去圖鑑看看',
                 pink:true,
-                onClose:()=>openPokedex()
+                onClose:()=>openPokedexFrom('result')
               });
             }else{
               showRewardOverlay({
@@ -549,10 +549,10 @@ function updateDailyMission(eventType){
         showRewardOverlay({
           emoji:`<img src="${got.unlocked.sprite}" alt="${got.unlocked.name}" style="width:150px;height:150px;object-fit:contain">`,
           title:`🎯 每日神秘任務完成！解鎖 ${got.unlocked.name}！`,
-          sub:'任務獎勵是寶可夢碎片 +1，而且剛好集滿 5 個，已放進圖鑑！',
+          sub:'任務獎勵是寶可夢碎片 +1，而且剛好集滿 3 個，已放進圖鑑！',
           button:'去圖鑑看看',
           pink:true,
-          onClose:()=>openPokedex()
+          onClose:()=>openPokedexFrom('result')
         });
       }else{
         showRewardOverlay({
@@ -567,6 +567,17 @@ function updateDailyMission(eventType){
   }else{
     saveDailyMission(m); renderDailyMission();
   }
+}
+
+let pokedexReturnScreen='homeScreen';
+
+function openPokedexFrom(screenId){
+  pokedexReturnScreen=screenId||'homeScreen';
+  openPokedex();
+}
+
+function closePokedex(){
+  show(pokedexReturnScreen||'homeScreen');
 }
 
 function openPokedex(){
@@ -640,30 +651,30 @@ const KINDERGARTEN_VOICE_KEY='learningKindergartenVoiceV1';
 let kindergartenVoiceOn=localStorage.getItem(KINDERGARTEN_VOICE_KEY)!=='off';
 
 const ZHUYIN_SPEECH_MAP={
-  'ㄅ':'爸爸的開頭聲音',
-  'ㄆ':'蘋果的開頭聲音',
-  'ㄇ':'媽媽的開頭聲音',
-  'ㄈ':'飛機的開頭聲音',
-  'ㄉ':'蛋糕的開頭聲音',
-  'ㄊ':'兔子的開頭聲音',
-  'ㄋ':'牛奶的開頭聲音',
-  'ㄌ':'老虎的開頭聲音',
-  'ㄍ':'哥哥的開頭聲音',
-  'ㄎ':'恐龍的開頭聲音',
-  'ㄏ':'河馬的開頭聲音',
-  'ㄐ':'雞蛋的開頭聲音',
-  'ㄑ':'氣球的開頭聲音',
-  'ㄒ':'西瓜的開頭聲音',
-  'ㄓ':'蜘蛛的開頭聲音',
-  'ㄔ':'尺的開頭聲音',
-  'ㄕ':'獅子的開頭聲音',
-  'ㄖ':'日曆的開頭聲音',
-  'ㄗ':'紫色的開頭聲音',
-  'ㄘ':'草莓的開頭聲音',
-  'ㄙ':'掃把的開頭聲音',
-  'ㄧ':'一的注音',
-  'ㄨ':'烏龜的開頭聲音',
-  'ㄩ':'魚的開頭聲音'
+  'ㄅ':'ㄅ，爸爸',
+  'ㄆ':'ㄆ，蘋果',
+  'ㄇ':'ㄇ，媽媽',
+  'ㄈ':'ㄈ，飛機',
+  'ㄉ':'ㄉ，蛋糕',
+  'ㄊ':'ㄊ，兔子',
+  'ㄋ':'ㄋ，牛奶',
+  'ㄌ':'ㄌ，老虎',
+  'ㄍ':'ㄍ，哥哥',
+  'ㄎ':'ㄎ，恐龍',
+  'ㄏ':'ㄏ，河馬',
+  'ㄐ':'ㄐ，雞蛋',
+  'ㄑ':'ㄑ，氣球',
+  'ㄒ':'ㄒ，西瓜',
+  'ㄓ':'ㄓ，蜘蛛',
+  'ㄔ':'ㄔ，尺',
+  'ㄕ':'ㄕ，獅子',
+  'ㄖ':'ㄖ，日曆',
+  'ㄗ':'ㄗ，紫色',
+  'ㄘ':'ㄘ，草莓',
+  'ㄙ':'ㄙ，掃把',
+  'ㄧ':'ㄧ，一',
+  'ㄨ':'ㄨ，烏龜',
+  'ㄩ':'ㄩ，魚'
 };
 
 function zhuyinSpeechLabel(v){
@@ -673,17 +684,15 @@ function zhuyinSpeechLabel(v){
 
 function speechTextForKindergartenQuestion(text){
   let t=String(text||'');
-  // 對「請找出 ㄅ」這類題目，不把孤立注音直接交給 TTS。
   t=t.replace(/請找出「([ㄅ-ㄩ])」/g,(m,z)=>'請找出'+zhuyinSpeechLabel(z));
   t=t.replace(/今天要練習寫哪一個？\s*([ㄅ-ㄩ])/g,(m,z)=>'今天要練習寫'+zhuyinSpeechLabel(z));
-  // 其他句子中的孤立注音也改成提示詞，避免手機把符號念得很怪。
   t=t.replace(/「([ㄅ-ㄩ])」/g,(m,z)=>zhuyinSpeechLabel(z));
   return t;
 }
 
 function speechTextForKindergartenOption(text){
   const s=String(text||'').trim();
-  if(ZHUYIN_SPEECH_MAP[s])return zhuyinSpeechLabel(s);
+  if(ZHUYIN_SPEECH_MAP[s])return ZHUYIN_SPEECH_MAP[s];
   return s;
 }
 
