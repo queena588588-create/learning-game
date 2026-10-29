@@ -87,7 +87,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="home-start" onclick="startAdventureFromHome()">🚀 開始今天的學習冒險</button>
     </div>
     <div class="home-note">
-      👑 美美：20／50／90 題各得 ⭐1｜⚡ 穎寶：挑戰級 30 題正確率達 80% 得 ⭐3
+      👑 美美：20／50／90 題各得 ⭐1｜⚡ 穎寶：挑戰級 15 題正確率達 80% 得 ⭐1
     </div>
   </section>
 
@@ -99,7 +99,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseChild('美美')">👑 美美</button>
     </div>
     <div class="info" style="margin-top:14px">
-      美美：20／50／90 題各解鎖 ⭐1，當日最多 ⭐3。穎寶：挑戰級累積答對 30 題且正確率達 80%，一次解鎖 ⭐3。
+      美美：20／50／90 題各解鎖 ⭐1，當日最多 ⭐3。穎寶：挑戰級 15 題且正確率達 80%，一次解鎖 ⭐1。
     </div>
   </section>
 
@@ -113,7 +113,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseGrade(3)">三年級</button>
     </div>
     <div class="info" style="margin-top:14px">
-      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。美美採 20／50／90 題階段獎勵；穎寶要到「⚡ 挑戰級」完成 30 題挑戰才拿 ⭐3。
+      每局 15 題。系統會記住最近玩過的題目並優先換新題；數學會自動換數字。美美採 20／50／90 題階段獎勵；穎寶要到「⚡ 挑戰級」完成 15 題且正確率達 80% 才拿 ⭐1。
     </div>
   </section>
 
@@ -130,7 +130,7 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
       <button class="btn" onclick="chooseLevel('初級')">🌱 初級</button>
       <button class="btn" onclick="chooseLevel('中級')">🔥 中級</button>
       <button class="btn" onclick="chooseLevel('困難')">👑 困難</button>
-      <button class="btn" onclick="chooseLevel('挑戰')">⚡ 挑戰級｜30 題達標 ⭐3</button>
+      <button class="btn" onclick="chooseLevel('挑戰')">⚡ 挑戰級｜15 題達 80% ⭐1</button>
     </div>
   </section>
 
@@ -365,7 +365,7 @@ function chooseFresh(pool,count){
 /* ---------- V8C 分齡學習獎勵 ---------- */
 const LEARNING_REWARD_VERSION='V8C';
 const MEI_THRESHOLDS=[20,50,90];
-const YING_CHALLENGE_SIZE=30;
+const YING_CHALLENGE_SIZE=15;
 const YING_MIN_ACCURACY=0.80;
 
 function localDayKey(){
@@ -407,12 +407,12 @@ function refreshStarUI(){
       : `答對 ${s.meiCorrect}｜今日 ⭐3 已完成`;
   }else{
     if(s.yingAwarded){
-      $('starProgress').textContent='今日挑戰 ⭐3 已完成';
+      $('starProgress').textContent='今日挑戰 ⭐1 已完成';
     }else if(state.level==='挑戰'){
       const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
-      $('starProgress').textContent=`本輪 ${s.yingRoundAttempts}/30｜答對 ${s.yingRoundCorrect}｜${acc}%`;
+      $('starProgress').textContent=`本輪 ${s.yingRoundAttempts}/15｜答對 ${s.yingRoundCorrect}｜${acc}%`;
     }else{
-      $('starProgress').textContent='到 ⚡ 挑戰級完成 30 題 → ⭐3';
+      $('starProgress').textContent='到 ⚡ 挑戰級完成 15 題且達 80% → ⭐1';
     }
   }
 }
@@ -454,15 +454,15 @@ function addYingChallengeAttempt(correct){
 
     if(accuracy>=YING_MIN_ACCURACY){
       s.yingAwarded=true;
-      s.todayStars+=3;
-      result.earned=3;
+      s.todayStars+=1;
+      result.earned=1;
       syncLearningReward(
-        'YING-CHALLENGE-30',
-        3,
-        `穎寶挑戰 30 題，答對 ${s.yingRoundCorrect} 題，正確率 ${Math.round(accuracy*100)}%`
+        'YING-CHALLENGE-15',
+        1,
+        `穎寶挑戰 15 題，答對 ${s.yingRoundCorrect} 題，正確率 ${Math.round(accuracy*100)}%`
       );
     }else{
-      // 未達 80%：本輪結束，下一題開始重新累積一輪 30 題。
+      // 未達 80%：本輪結束，下一題開始重新累積一輪 15 題。
       s.yingRoundAttempts=0;
       s.yingRoundCorrect=0;
       result.reset=true;
@@ -925,8 +925,8 @@ function answer(btn,opt,item){
     btn.classList.add('correct');state.score++;state.combo++;
     reward=handleLearningAnswerReward(true);
 
-    if(reward.earned===3){
-      $('feedback').textContent='🏆 挑戰成功！30 題正確率達 80%，獲得 ⭐3 顆！';
+    if(reward.earned===1 && state.child==='穎寶' && state.level==='挑戰'){
+      $('feedback').textContent='🏆 挑戰成功！15 題正確率達 80%，獲得 ⭐1 顆！';
     }else if(reward.earned===1 && state.child==='美美'){
       $('feedback').textContent=`🌟 達成 ${reward.threshold} 題里程碑！獲得 ⭐1 顆！`;
     }else if(state.child==='美美'){
@@ -938,10 +938,10 @@ function answer(btn,opt,item){
     }else if(state.child==='穎寶' && state.level==='挑戰'){
       const s=getRewardState('穎寶');
       if(reward.finished && reward.reset){
-        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 30 題！`;
+        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 15 題！`;
       }else{
         const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
-        $('feedback').textContent=`⚡ 本輪 ${s.yingRoundAttempts}/30｜答對 ${s.yingRoundCorrect}｜正確率 ${acc}%`;
+        $('feedback').textContent=`⚡ 本輪 ${s.yingRoundAttempts}/15｜答對 ${s.yingRoundCorrect}｜正確率 ${acc}%`;
       }
     }else{
       $('feedback').textContent=state.combo>=3?'🎉 連續答對！':'✅ 答對了！';
@@ -952,7 +952,7 @@ function answer(btn,opt,item){
     if(state.child==='穎寶' && state.level==='挑戰'){
       reward=handleLearningAnswerReward(false);
       if(reward.finished && reward.reset){
-        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 30 題！`;
+        $('feedback').textContent=`💪 這輪正確率 ${Math.round(reward.accuracy*100)}%，還沒到 80%。下一題重新挑戰 15 題！`;
       }else{
         $('feedback').textContent=`💡 正確答案：${item.answer}`;
       }
@@ -986,10 +986,10 @@ function finish(){
     const s=getRewardState('穎寶');
     const acc=s.yingRoundAttempts?Math.round(s.yingRoundCorrect/s.yingRoundAttempts*100):0;
     rewardText=s.yingAwarded
-      ? '⚡ 今日挑戰已完成：<b>⭐3</b>'
-      : `⚡ 本輪進度：<b>${s.yingRoundAttempts}/30</b>｜答對 <b>${s.yingRoundCorrect}</b>｜正確率 <b>${acc}%</b>`;
+      ? '⚡ 今日挑戰已完成：<b>⭐1</b>'
+      : `⚡ 本輪進度：<b>${s.yingRoundAttempts}/15</b>｜答對 <b>${s.yingRoundCorrect}</b>｜正確率 <b>${acc}%</b>`;
   }else{
-    rewardText='⚡ 穎寶要到「挑戰級」完成 30 題，正確率達 80% 才會獲得 ⭐3。';
+    rewardText='⚡ 穎寶要到「挑戰級」完成 15 題，正確率達 80% 才會獲得 ⭐1。';
   }
 
   $('resultText').innerHTML=`答對 <b>${state.score} / ${total}</b> 題｜正確率 <b>${pct}%</b><br>${rewardText}`;
