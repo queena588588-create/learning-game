@@ -190,13 +190,13 @@ padding:20px;font-size:20px;line-height:1.9;margin:12px 0 18px}
         <div class="step" style="margin-bottom:5px">📖 寶可夢圖鑑</div>
         <div class="sub" id="pokedexOwner">收集進度</div>
       </div>
-      <div class="badge">🧩 碎片 <span id="pokeFragmentTotal">0</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="badge">🧩 碎片 <span id="pokeFragmentTotal">0</span></div><div class="badge" id="pokeCloudStatus">☁️ 同步中</div></div>
     </div>
     <div class="info" style="margin-top:12px">
       ⭐ 過關星星會先出現，接著才開寶箱拿碎片。集滿 5 個碎片，就能解鎖 1 隻寶可夢。
     </div>
     <div class="pokedex-grid" id="pokedexGrid"></div>
-    <div class="pokedex-note">圖鑑進度會保存在這台裝置；清除瀏覽器資料後會重置。</div>
+    <div class="pokedex-note">☁️ 圖鑑進度已同步到家庭雲端，換手機或清除瀏覽器資料也能重新載回。</div>
   </section>
 
   <section id="game" class="panel hidden">
@@ -268,6 +268,134 @@ const POKEMON_BANK=[
 
 function pokeStoreKey(child=state.child){return `learningPokemonV10-${child||'guest'}`}
 
+let pokeCloudReady={};
+
+function setPokeCloudStatus(text){
+  const el=$('pokeCloudStatus');
+  if(el)el.textContent=text;
+}
+
+function normalizedPokeStateV10(s){
+  s=s||{};
+  return {
+    fragments:Math.max(0,Math.min(4,Number(s.fragments||0))),
+    unlocked:[...new Set(Array.isArray(s.unlocked)?s.unlocked.map(Number).filter(Number.isFinite):[])],
+    lifetimeFragments:Math.max(0,Number(s.lifetimeFragments||0))
+  };
+}
+
+function derivedPokeScoreV10(s){
+  s=normalizedPokeStateV10(s);
+  return Math.max(Number(s.lifetimeFragments||0), s.unlocked.length*POKE_FRAGMENT_NEED+s.fragments);
+}
+
+function mergePokeProgressV10(local,remote){
+  local=normalizedPokeStateV10(local);
+  remote=normalizedPokeStateV10(remote);
+
+  // 以「總收集進度較高」的一邊為主，避免舊手機資料蓋掉較新的雲端資料。
+  const ls=derivedPokeScoreV10(local), rs=derivedPokeScoreV10(remote);
+  let best=ls>=rs?local:remote;
+
+  // 已解鎖角色取聯集，避免任何一隻因同步被吃掉。
+  const unlocked=[...new Set([...local.unlocked,...remote.unlocked])];
+
+  // 依目前進度推回至少應有的總碎片數。
+  const minimumLifetime=unlocked.length*POKE_FRAGMENT_NEED+best.fragments;
+  return {
+    fragments:best.fragments,
+    unlocked:unlocked,
+    lifetimeFragments:Math.max(ls,rs,minimumLifetime)
+  };
+}
+
+function savePokeLocalOnlyV10(s,child=state.child){
+  localStorage.setItem(pokeStoreKey(child),JSON.stringify(normalizedPokeStateV10(s)));
+}
+
+function savePokeCloudV10(s,child=state.child){
+  if(!child||!CHALLENGE_PARK_SYNC_URL)return;
+  const data=normalizedPokeStateV10(s);
+  savePokeLocalOnlyV10(data,child);
+  setPokeCloudStatus('☁️ 同步中');
+
+  const body=new URLSearchParams({
+    action:'savePokemonProgress',
+    child:String(child),
+    progress:JSON.stringify(data)
+  });
+
+  fetch(CHALLENGE_PARK_SYNC_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+    body:body.toString()
+  }).then(()=>setPokeCloudStatus('☁️ 已同步'))
+    .catch(()=>setPokeCloudStatus('📱 已先存在本機'));
+}
+
+function loadPokeCloudV10(child=state.child){
+  if(!child||!CHALLENGE_PARK_SYNC_URL)return Promise.resolve(getPokeState(child));
+
+  return new Promise(resolve=>{
+    setPokeCloudStatus('☁️ 載入中');
+    const callback='__pokeCloudCb_'+Date.now()+'_'+Math.floor(Math.random()*10000);
+    const script=document.createElement('script');
+    let finished=false;
+
+    const done=(data)=>{
+      if(finished)return;
+      finished=true;
+      try{delete window[callback]}catch(e){}
+      script.remove();
+      resolve(data);
+    };
+
+    window[callback]=(res)=>{
+      const local=getPokeState(child);
+      if(res&&res.success){
+        const merged=mergePokeProgressV10(local,res.data||{});
+        savePokeLocalOnlyV10(merged,child);
+        pokeCloudReady[child]=true;
+        setPokeCloudStatus('☁️ 已同步');
+
+        // 如果本機原本比雲端完整，立即把合併後進度補回雲端。
+        const localScore=derivedPokeScoreV10(local);
+        const remoteScore=derivedPokeScoreV10(res.data||{});
+        if(localScore>remoteScore || merged.unlocked.length>(res.data&&Array.isArray(res.data.unlocked)?res.data.unlocked.length:0)){
+          savePokeCloudV10(merged,child);
+        }
+        done(merged);
+      }else{
+        setPokeCloudStatus('📱 使用本機進度');
+        done(local);
+      }
+    };
+
+    script.onerror=()=>{
+      setPokeCloudStatus('📱 使用本機進度');
+      done(getPokeState(child));
+    };
+
+    const qs=new URLSearchParams({
+      action:'getPokemonProgress',
+      child:String(child),
+      callback:callback,
+      t:String(Date.now())
+    });
+    script.src=CHALLENGE_PARK_SYNC_URL+'?'+qs.toString();
+    document.body.appendChild(script);
+
+    setTimeout(()=>{
+      if(!finished){
+        setPokeCloudStatus('📱 使用本機進度');
+        done(getPokeState(child));
+      }
+    },7000);
+  });
+}
+
+
 function getPokeState(child=state.child){
   try{
     const raw=JSON.parse(localStorage.getItem(pokeStoreKey(child))||'{}');
@@ -280,7 +408,7 @@ function getPokeState(child=state.child){
     return {fragments:0,unlocked:[],lifetimeFragments:0};
   }
 }
-function savePokeState(s,child=state.child){localStorage.setItem(pokeStoreKey(child),JSON.stringify(s))}
+function savePokeState(s,child=state.child){savePokeCloudV10(s,child)}
 
 function pickNextPokemon(s){
   return POKEMON_BANK.find(p=>!s.unlocked.includes(p.id))||null;
@@ -446,6 +574,12 @@ function openPokedex(){
     show('childScreen');
     return;
   }
+  if(!pokeCloudReady[state.child]){
+    show('pokedexScreen');
+    setPokeCloudStatus('☁️ 載入中');
+    loadPokeCloudV10(state.child).then(()=>openPokedex());
+    return;
+  }
   const s=getPokeState();
   $('pokedexOwner').textContent=`${state.child}的圖鑑｜已解鎖 ${s.unlocked.length}/${POKEMON_BANK.length}`;
   $('pokeFragmentTotal').textContent=`${s.fragments}/${POKE_FRAGMENT_NEED}`;
@@ -598,7 +732,7 @@ function chooseChild(child){
   state.child=child;
   localStorage.setItem('learningGameChild',child);
   renderDailyMission();
-  show('gradeScreen');
+  loadPokeCloudV10(child).finally(()=>show('gradeScreen'));
 }
 
 function startAdventureFromHome(){
@@ -615,7 +749,7 @@ function startAdventureFromHome(){
     state.child=urlChild;
     localStorage.setItem('learningGameChild',urlChild);
   }
-  setTimeout(()=>{renderDailyMission();show('homeScreen')},0);
+  setTimeout(()=>{renderDailyMission();show('homeScreen');if(state.child)loadPokeCloudV10(state.child)},0);
 })();
 function wrongOptions(ans,spread=4){
   const set=new Set([ans]);
