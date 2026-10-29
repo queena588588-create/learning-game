@@ -597,6 +597,31 @@ function openPokedex(){
   show('pokedexScreen');
 }
 
+
+let monsterRetryMode=false;
+
+function startMonsterRetry(){
+  if(!state.wrong.length)return;
+  monsterRetryMode=true;
+  const retrySet=[...state.wrong];
+  state.wrong=[];
+  launch(retrySet);
+}
+
+function showMonsterCleared(){
+  showRewardOverlay({
+    emoji:'💥',
+    title:'怪獸被打敗了！',
+    sub:'👾 怪獸清空！🎉<br>剛剛的錯題全部答對了，太厲害了！',
+    button:'完成挑戰！',
+    pink:true,
+    onClose:()=>{
+      monsterRetryMode=false;
+      show('result');
+    }
+  });
+}
+
 function renderWrongMonster(){
   if(!$('wrongBox'))return;
   if(!state.wrong.length)return;
@@ -607,6 +632,7 @@ function renderWrongMonster(){
     <b>錯題怪獸出現了！</b><br>
     還有 ${count} 題怪獸等你打敗。
     <div class="monster-list">${state.wrong.map((x,i)=>`${i+1}. ${x.text}`).join('<br>')}</div>`;
+  if($('retryWrong'))$('retryWrong').textContent='⚔️ 打敗錯題怪獸！';
 }
 
 
@@ -1368,6 +1394,23 @@ function finish(){
   saveRecent(state.questions.map(x=>x.id));
   show('result');
   const total=state.questions.length,pct=Math.round(state.score/total*100);
+
+  if(monsterRetryMode){
+    if(state.wrong.length===0){
+      $('resultEmoji').textContent='💥';
+      $('resultText').innerHTML=`錯題再挑戰 <b>${state.score}/${total}</b> 題全部答對！<br>👾 怪獸清空！🎉`;
+      $('wrongBox').classList.add('hidden');
+      $('retryWrong').classList.add('hidden');
+      setTimeout(()=>showMonsterCleared(),260);
+      return;
+    }else{
+      $('resultEmoji').textContent='👾';
+      $('resultText').innerHTML=`還有 <b>${state.wrong.length}</b> 隻錯題怪獸沒打敗，再挑戰一次吧！`;
+      renderWrongMonster();
+      $('retryWrong').classList.remove('hidden');
+      return;
+    }
+  }
   const isFullNormalRound=state.mode==='normal' && ((state.child==='穎寶' && getYingRule() && total===getYingRule().size) || (state.child==='美美' && total===15));
   if(isFullNormalRound)updateDailyMission('clear');
   $('resultEmoji').textContent=pct===100?'👑':pct>=80?'🌟':pct>=60?'👏':'💪';
@@ -1410,7 +1453,7 @@ function finish(){
     $('retryWrong').classList.add('hidden');
   }
 }
-$('retryWrong').onclick=()=>launch([...state.wrong]);
+$('retryWrong').onclick=()=>startMonsterRetry();
 $('again').onclick=()=>{if(state.mode==='reading')launch(state.selectedStory.questions);else startNormalGame()};
 $('backMenu').onclick=()=>exitGame();
 function exitGame(){if('speechSynthesis' in window)window.speechSynthesis.cancel();if(state.mode==='reading')show('storyListScreen');else show('levelScreen')}
